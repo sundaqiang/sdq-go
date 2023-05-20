@@ -1,4 +1,4 @@
-package sundry
+package sdqgo
 
 type KeyFunc[T any] func(T) string
 

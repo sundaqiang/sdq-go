@@ -1,4 +1,4 @@
-package sundry
+package sdqgo
 
 import (
 	"go.uber.org/zap"
