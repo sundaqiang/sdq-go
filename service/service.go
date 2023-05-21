@@ -18,8 +18,8 @@ var (
 	sqlDB  *sql.DB
 )
 
-// InitDB 初始化GORM
-func InitDB(info *GormInfo) {
+// InitGORM 初始化GORM
+func InitGORM(info *GormInfo) {
 	initDB(info)
 }
 
