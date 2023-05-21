@@ -1,4 +1,4 @@
-package sdqgo
+package common
 
 import (
 	"github.com/goccy/go-json"
@@ -68,12 +68,12 @@ func Json2Struct(jsonData any, res any) bool {
 	case string:
 		req = String2Bytes(jsonData.(string))
 	default:
-		zapLog.Error("不支持的数据类型")
+		ZapLog.Error("不支持的数据类型")
 		return false
 	}
 	err := json.Unmarshal(req, res)
 	if err != nil {
-		zapLog.Error("json转换struct失败",
+		ZapLog.Error("json转换struct失败",
 			zap.String("json_data", string(req)),
 			zap.Error(err))
 		return false
@@ -90,12 +90,12 @@ func Json2Map(jsonData any) *map[string]interface{} {
 	case string:
 		req = []byte(jsonData.(string))
 	default:
-		zapLog.Error("不支持的数据类型")
+		ZapLog.Error("不支持的数据类型")
 	}
 	logData := make(map[string]interface{})
 	err := json.Unmarshal(req, &logData)
 	if err != nil {
-		zapLog.Error("json转换map失败",
+		ZapLog.Error("json转换map失败",
 			zap.String("json_data", string(req)),
 			zap.Error(err),
 		)
@@ -108,7 +108,7 @@ func Struct2Byte(jsonData any) []byte {
 	var res []byte
 	res, err := json.Marshal(jsonData)
 	if err != nil {
-		zapLog.Error("struct转换json_byte失败",
+		ZapLog.Error("struct转换json_byte失败",
 			zap.Reflect("data", jsonData),
 			zap.Error(err),
 		)
@@ -122,7 +122,7 @@ func Struct2String(jsonData any) string {
 	var res []byte
 	res, err := json.Marshal(jsonData)
 	if err != nil {
-		zapLog.Error("struct转换json_string失败",
+		ZapLog.Error("struct转换json_string失败",
 			zap.Reflect("data", jsonData),
 			zap.Error(err),
 		)

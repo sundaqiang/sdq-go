@@ -1,4 +1,4 @@
-package sdqgo
+package common
 
 type KeyFunc[T any] func(T) string
 

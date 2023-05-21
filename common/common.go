@@ -1,14 +1,28 @@
-package sdqgo
+package common
 
 import (
+	"github.com/sony/sonyflake"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"sync"
+	"syscall"
 )
 
-var zapLog *zap.Logger
-var httpClient *fasthttp.Client
-var fileTypeMap sync.Map
+const (
+	EsContinuous      = 0x80000000
+	EsSystemRequired  = 0x00000001
+	EsDisplayRequired = 0x00000002
+)
+
+var (
+	FastHttpClient              *fasthttp.Client
+	SonyFlake                   *sonyflake.Sonyflake
+	ZapLog                      *zap.Logger
+	fileTypeMap                 sync.Map
+	kernel32                    = syscall.NewLazyDLL("kernel32.dll")
+	setThreadExecutionStateProc = kernel32.NewProc("SetThreadExecutionState")
+)
 
 func init() {
 	fileTypeMap.Store("ffd8ffe000104a464946", "jpg")  // JPEG (jpg)
@@ -69,7 +83,55 @@ func init() {
 	fileTypeMap.Store("2E7261FD", "ram")         // Real Audio (ram)
 }
 
-func InitConfig(log *zap.Logger, http *fasthttp.Client) {
-	zapLog = log
-	httpClient = http
+// InitLogger 必须
+func InitLogger(logsPath, serverName string) {
+	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.DebugLevel
+	})
+	infoLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.InfoLevel
+	})
+	warnLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.WarnLevel
+	})
+	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl >= zapcore.ErrorLevel
+	})
+	debugWriter := getLogWriter(logsPath + serverName + "_debug.log")
+	infoWriter := getLogWriter(logsPath + serverName + "_info.log")
+	warnWriter := getLogWriter(logsPath + serverName + "_warn.log")
+	errorWriter := getLogWriter(logsPath + serverName + "_error.log")
+	encoder := getEncoder()
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, zapcore.AddSync(debugWriter), debugLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(infoWriter), infoLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(warnWriter), warnLevel),
+		zapcore.NewCore(encoder, zapcore.AddSync(errorWriter), errorLevel),
+	)
+	ZapLog = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	defer func(zapLog *zap.Logger) {
+		err := zapLog.Sync()
+		if err != nil {
+
+		}
+	}(ZapLog)
+}
+
+// InitFastHttp 可选，CheckNetwork 检查是否有网络必选
+func InitFastHttp(proxyAddr string) {
+	if proxyAddr == "" {
+		FastHttpClient = &fasthttp.Client{
+			MaxConnsPerHost: 10240,
+		}
+		return
+	}
+	FastHttpClient = &fasthttp.Client{
+		MaxConnsPerHost: 10240,
+		Dial:            FastHTTPDialer(proxyAddr),
+	}
+}
+
+// InitSonyFlake 初始化雪花Id
+func InitSonyFlake() {
+	SonyFlake = sonyflake.NewSonyflake(sonyflake.Settings{})
 }

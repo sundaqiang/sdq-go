@@ -1,5 +1,0 @@
-package sdqgo
-
-func main() {
-
-}

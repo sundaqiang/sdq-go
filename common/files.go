@@ -1,9 +1,10 @@
-package sdqgo
+package common
 
 import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"go.uber.org/zap"
 	"io"
 	"math"
 	"mime/multipart"
@@ -11,15 +12,13 @@ import (
 	"path"
 	"strconv"
 	"strings"
-
-	"go.uber.org/zap"
 )
 
 // MustOpenFile 打开文件
 func MustOpenFile(f string) *os.File {
 	r, err := os.Open(f)
 	if err != nil {
-		zapLog.Error("文件打开失败",
+		ZapLog.Error("文件打开失败",
 			zap.String("path", f),
 			zap.Error(err),
 		)
@@ -32,7 +31,7 @@ func MustOpenFile(f string) *os.File {
 func CreateFile(fileName string, content *[]byte) (isOk bool) {
 	f1, err := os.Create(fileName)
 	if err != nil {
-		zapLog.Error("文件创建失败",
+		ZapLog.Error("文件创建失败",
 			zap.String("file_name", fileName),
 			zap.Error(err),
 		)
@@ -41,7 +40,7 @@ func CreateFile(fileName string, content *[]byte) (isOk bool) {
 	defer func(f1 *os.File) {
 		err := f1.Close()
 		if err != nil {
-			zapLog.Error("文件关闭失败",
+			ZapLog.Error("文件关闭失败",
 				zap.String("file_name", fileName),
 				zap.Error(err),
 			)
@@ -51,7 +50,7 @@ func CreateFile(fileName string, content *[]byte) (isOk bool) {
 	}(f1)
 	_, err = f1.Write(*content)
 	if err != nil {
-		zapLog.Error("文件写入失败",
+		ZapLog.Error("文件写入失败",
 			zap.String("file_name", fileName),
 			zap.Error(err),
 		)
@@ -66,7 +65,7 @@ func GetMd5(file *[]byte) string {
 	fileMd5 := md5.New()
 	_, err := fileMd5.Write(*file)
 	if err != nil {
-		zapLog.Error("读取MD5失败",
+		ZapLog.Error("读取MD5失败",
 			zap.Error(err),
 		)
 		return ""
@@ -86,7 +85,7 @@ func CreateMultipartFormData(fieldName, fieldValue string, fileName any, fieldAr
 	for k, v := range *fieldArr {
 		err = w.WriteField(k, v)
 		if err != nil {
-			zapLog.Error("构造MultipartFormData失败",
+			ZapLog.Error("构造MultipartFormData失败",
 				zap.String("key", k),
 				zap.String("value", v),
 				zap.Error(err),
@@ -107,20 +106,20 @@ func CreateMultipartFormData(fieldName, fieldValue string, fileName any, fieldAr
 		file = bytes.NewReader(*fileName.(*[]byte))
 	}
 	if fw, err = w.CreateFormFile(fieldName, fieldValue); err != nil {
-		zapLog.Error("新建文件MultipartData失败",
+		ZapLog.Error("新建文件MultipartData失败",
 			zap.String("field", fieldName),
 			zap.String("value", fieldValue),
 			zap.Error(err),
 		)
 	}
 	if _, err = io.Copy(fw, file); err != nil {
-		zapLog.Error("复制文件流失败",
+		ZapLog.Error("复制文件流失败",
 			zap.Error(err),
 		)
 	}
 	err = w.Close()
 	if err != nil {
-		zapLog.Error("关闭文件流失败",
+		ZapLog.Error("关闭文件流失败",
 			zap.Error(err),
 		)
 		return bytes.Buffer{}, nil

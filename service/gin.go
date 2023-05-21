@@ -1,4 +1,4 @@
-package sdqgo
+package service
 
 import (
 	"github.com/go-playground/validator/v10"

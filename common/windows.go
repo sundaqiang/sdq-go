@@ -1,22 +1,10 @@
-package sdqgo
+package common
 
 import (
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows/registry"
 	"os"
 	"strings"
-	"syscall"
-)
-
-var (
-	kernel32                    = syscall.NewLazyDLL("kernel32.dll")
-	setThreadExecutionStateProc = kernel32.NewProc("SetThreadExecutionState")
-)
-
-const (
-	EsContinuous      = 0x80000000
-	EsSystemRequired  = 0x00000001
-	EsDisplayRequired = 0x00000002
 )
 
 // 通过注册表获取已安装的软件
@@ -67,7 +55,7 @@ func AddHosts(ip string, domain string) {
 	// 读取hosts文件
 	content, err := os.ReadFile(hostsFilePath)
 	if err != nil {
-		zapLog.Error("无法读取hosts文件",
+		ZapLog.Error("无法读取hosts文件",
 			zap.Error(err),
 		)
 	}
@@ -84,7 +72,7 @@ func AddHosts(ip string, domain string) {
 	// 写入修改后的内容
 	err = os.WriteFile(hostsFilePath, content, os.ModeAppend)
 	if err != nil {
-		zapLog.Error("无法写入hosts文件",
+		ZapLog.Error("无法写入hosts文件",
 			zap.Error(err),
 		)
 	}
@@ -114,13 +102,13 @@ func CheckDefenderApp(products, defender *[]string) string {
 func GetAllProduct() []string {
 	softWares32, err := getProduct(registry.WOW64_32KEY)
 	if err != nil {
-		zapLog.Error("读取已安装的32位软件失败",
+		ZapLog.Error("读取已安装的32位软件失败",
 			zap.Error(err),
 		)
 	}
 	softWares64, err := getProduct(registry.WOW64_64KEY)
 	if err != nil {
-		zapLog.Error("读取已安装的64位软件失败",
+		ZapLog.Error("读取已安装的64位软件失败",
 			zap.Error(err),
 		)
 	}

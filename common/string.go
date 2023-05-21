@@ -1,4 +1,4 @@
-package sdqgo
+package common
 
 import (
 	"strconv"

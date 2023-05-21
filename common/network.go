@@ -1,4 +1,4 @@
-package sdqgo
+package common
 
 import (
 	"github.com/valyala/fasthttp"
@@ -22,13 +22,13 @@ func CheckNetwork() bool {
 	for _, dns := range dnsServers {
 		conn, err = net.DialTimeout("udp", net.JoinHostPort(dns, "53"), time.Second*5)
 		if err != nil {
-			zapLog.Error("无法连接DNS",
+			ZapLog.Error("无法连接DNS",
 				zap.String("dns", dns),
 				zap.Error(err),
 			)
 			continue
 		}
-		zapLog.Info("已连接上DNS",
+		ZapLog.Info("已连接上DNS",
 			zap.String("dns", dns),
 		)
 		break
@@ -37,7 +37,7 @@ func CheckNetwork() bool {
 		defer func(conn net.Conn) {
 			err := conn.Close()
 			if err != nil {
-				zapLog.Error("关闭DialTimeout失败",
+				ZapLog.Error("关闭DialTimeout失败",
 					zap.Error(err),
 				)
 			}
@@ -51,7 +51,7 @@ func CheckNetwork() bool {
 func GetLocalIP4() string {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
-		zapLog.Error("获取本地ip失败", zap.Error(err))
+		ZapLog.Error("获取本地ip失败", zap.Error(err))
 		return ""
 	}
 
@@ -88,8 +88,8 @@ func GetExternalIP4() (ip string) {
 	for _, ipUrl := range ipUrls {
 		req.SetRequestURI(ipUrl)
 		req.Header.SetMethod("GET")
-		if err := httpClient.Do(req, resp); err != nil {
-			zapLog.Error("获取ip访问异常",
+		if err := FastHttpClient.Do(req, resp); err != nil {
+			ZapLog.Error("获取ip访问异常",
 				zap.String("url", ipUrl),
 				zap.Error(err),
 			)
@@ -97,7 +97,7 @@ func GetExternalIP4() (ip string) {
 			res := resp.String()
 			ip = MatchIp(res)
 			if ip == "" {
-				zapLog.Error("获取ip访问错误",
+				ZapLog.Error("获取ip访问错误",
 					zap.String("url", ipUrl),
 					zap.String("result", res),
 				)
