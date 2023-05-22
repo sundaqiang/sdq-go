@@ -33,8 +33,8 @@ func InitGoCron() {
 	t, timeLocationErr := time.LoadLocation("Asia/Shanghai")
 	if timeLocationErr != nil {
 		t = time.FixedZone("CST", 8*3600)
-		GoCron = gocron.NewScheduler(t)
 	}
+	GoCron = gocron.NewScheduler(t)
 	GoCron.SingletonModeAll()
 	GoCron.StartAsync()
 }

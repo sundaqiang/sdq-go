@@ -85,6 +85,9 @@ func init() {
 
 // InitLogger 必须
 func InitLogger(logsPath, serverName string) {
+	if logsPath == "" {
+		logsPath = "logs/"
+	}
 	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl == zapcore.DebugLevel
 	})
