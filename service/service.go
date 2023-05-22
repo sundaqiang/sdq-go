@@ -9,6 +9,7 @@ import (
 	"github.com/sundaqiang/sdq-go/common"
 	"gorm.io/gorm"
 	"time"
+	_ "time/tzdata"
 )
 
 var (
