@@ -40,7 +40,11 @@ func InitGoCron() {
 	GoCron.StartAsync()
 }
 
-// InitGin 初始化Gin
+/*
+InitGin 初始化Gin
+编译需要加tags
+-tags "sonic avx linux amd64"
+*/
 func InitGin(serverAddr, serverPort string, router func(r *gin.Engine)) {
 	r := gin.New()
 	// 将gin的日志改为zap

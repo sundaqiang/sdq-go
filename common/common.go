@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/bytedance/sonic"
 	"github.com/sony/sonyflake"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ var (
 	fileTypeMap                 sync.Map
 	kernel32                    = syscall.NewLazyDLL("kernel32.dll")
 	setThreadExecutionStateProc = kernel32.NewProc("SetThreadExecutionState")
+	json                        = sonic.ConfigStd
 )
 
 func init() {
