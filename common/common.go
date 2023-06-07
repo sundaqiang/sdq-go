@@ -96,9 +96,12 @@ func init() {
 }
 
 // InitLogger 必须
-func InitLogger(logsPath, serverName string) {
+func InitLogger(logsPath, serverName string) bool {
 	if logsPath == "" {
 		logsPath = "logs/"
+	}
+	if serverName == "" {
+		return false
 	}
 	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl == zapcore.DebugLevel
@@ -130,6 +133,7 @@ func InitLogger(logsPath, serverName string) {
 
 		}
 	}(ZapLog)
+	return true
 }
 
 // InitFastHttp 可选，CheckNetwork 检查是否有网络必选
