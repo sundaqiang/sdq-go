@@ -1,13 +1,11 @@
 package common
 
 import (
-	"io"
-	"os"
-	"strings"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
+	"os"
 )
 
 func getEncoder() zapcore.Encoder {
@@ -17,7 +15,7 @@ func getEncoder() zapcore.Encoder {
 	return zapcore.NewJSONEncoder(encoderConfig)
 }
 
-func getLogWriter(filename string) zapcore.WriteSyncer {
+func getLogWriter(filename string, stdOut bool) zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
 		Filename:   filename,
 		MaxSize:    1,
@@ -27,7 +25,7 @@ func getLogWriter(filename string) zapcore.WriteSyncer {
 		Compress:   false,
 	}
 	var ws io.Writer
-	if strings.Contains(filename, "info") {
+	if stdOut {
 		ws = io.MultiWriter(lumberJackLogger, os.Stdout)
 	} else {
 		ws = io.MultiWriter(lumberJackLogger, os.Stderr)

@@ -2,28 +2,38 @@ package common
 
 import (
 	"github.com/bytedance/sonic"
+	"github.com/orca-zhang/ecache"
+	"github.com/orca-zhang/ecache/dist"
+	"github.com/redis/go-redis/v9"
 	"github.com/sony/sonyflake"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const (
+	MaxPath           = 260
 	EsContinuous      = 0x80000000
 	EsSystemRequired  = 0x00000001
 	EsDisplayRequired = 0x00000002
 )
 
 var (
-	FastHttpClient              *fasthttp.Client
-	SonyFlake                   *sonyflake.Sonyflake
-	ZapLog                      *zap.Logger
-	fileTypeMap                 sync.Map
-	kernel32                    = syscall.NewLazyDLL("kernel32.dll")
-	setThreadExecutionStateProc = kernel32.NewProc("SetThreadExecutionState")
-	json                        = sonic.ConfigStd
+	FastHttpClient               *fasthttp.Client
+	SonyFlake                    *sonyflake.Sonyflake
+	ZapLog                       *zap.Logger
+	LRUCache                     *ecache.Cache
+	fileTypeMap                  sync.Map
+	kernel32                     = syscall.NewLazyDLL("kernel32.dll")
+	procCloseHandle              = kernel32.NewProc("CloseHandle")
+	procCreateToolhelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
+	procProcess32First           = kernel32.NewProc("Process32FirstW")
+	procProcess32Next            = kernel32.NewProc("Process32NextW")
+	setThreadExecutionStateProc  = kernel32.NewProc("SetThreadExecutionState")
+	json                         = sonic.ConfigStd
 )
 
 func init() {
@@ -102,10 +112,10 @@ func InitLogger(logsPath, serverName string) {
 	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl >= zapcore.ErrorLevel
 	})
-	debugWriter := getLogWriter(logsPath + serverName + "_debug.log")
-	infoWriter := getLogWriter(logsPath + serverName + "_info.log")
-	warnWriter := getLogWriter(logsPath + serverName + "_warn.log")
-	errorWriter := getLogWriter(logsPath + serverName + "_error.log")
+	debugWriter := getLogWriter(logsPath+serverName+"_debug.log", true)
+	infoWriter := getLogWriter(logsPath+serverName+"_info.log", true)
+	warnWriter := getLogWriter(logsPath+serverName+"_warn.log", false)
+	errorWriter := getLogWriter(logsPath+serverName+"_error.log", false)
 	encoder := getEncoder()
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, zapcore.AddSync(debugWriter), debugLevel),
@@ -132,11 +142,31 @@ func InitFastHttp(proxyAddr string) {
 	}
 	FastHttpClient = &fasthttp.Client{
 		MaxConnsPerHost: 10240,
-		Dial:            FastHTTPDialer(proxyAddr),
+		Dial:            fastHTTPDialer(proxyAddr),
 	}
 }
 
 // InitSonyFlake 初始化雪花Id
 func InitSonyFlake() {
 	SonyFlake = sonyflake.NewSonyflake(sonyflake.Settings{})
+}
+
+/*
+InitLocalCache 本地缓存
+
+	bucketCnt:分片数量 MAX=65535
+	capPerBkt:分配尺寸 MAX=65535
+	capPerBkt2:热队列尺寸 CLOSE=0
+	rdb:是否绑定redis CLOSE=nil
+	size:redis缓存区尺寸
+*/
+func InitLocalCache(bucketCnt, capPerBkt, capPerBkt2 uint16, rdb *redis.Client, size int, expiration time.Duration) {
+	if capPerBkt2 > 0 {
+		LRUCache = ecache.NewLRUCache(bucketCnt, capPerBkt, expiration).LRU2(capPerBkt2)
+	} else {
+		LRUCache = ecache.NewLRUCache(bucketCnt, capPerBkt, expiration)
+	}
+	if rdb != nil {
+		dist.Init(Take(rdb, size))
+	}
 }

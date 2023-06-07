@@ -8,7 +8,8 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func FastHTTPDialer(proxyAddr string) fasthttp.DialFunc {
+// 代理配置
+func fastHTTPDialer(proxyAddr string) fasthttp.DialFunc {
 	return func(addr string) (net.Conn, error) {
 		conn, err := fasthttp.Dial(proxyAddr)
 		if err != nil {

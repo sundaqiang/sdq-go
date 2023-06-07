@@ -2,7 +2,6 @@ package common
 
 import (
 	"bytes"
-	"crypto/md5"
 	"encoding/hex"
 	"go.uber.org/zap"
 	"io"
@@ -58,19 +57,6 @@ func CreateFile(fileName string, content *[]byte) (isOk bool) {
 	}
 	isOk = true
 	return
-}
-
-// GetMd5 获取md5
-func GetMd5(file *[]byte) string {
-	fileMd5 := md5.New()
-	_, err := fileMd5.Write(*file)
-	if err != nil {
-		ZapLog.Error("读取MD5失败",
-			zap.Error(err),
-		)
-		return ""
-	}
-	return hex.EncodeToString(fileMd5.Sum(nil))
 }
 
 /*

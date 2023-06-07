@@ -5,7 +5,28 @@ import (
 	"golang.org/x/sys/windows/registry"
 	"os"
 	"strings"
+	"syscall"
+	"unsafe"
 )
+
+type WindowsProcess struct {
+	Pid        int
+	PPid       int
+	Executable string
+}
+
+type ProcessEntry32 struct {
+	Size              uint32
+	CntUsage          uint32
+	ProcessID         uint32
+	DefaultHeapID     uintptr
+	ModuleID          uint32
+	CntThreads        uint32
+	ParentProcessID   uint32
+	PriorityClassBase int32
+	Flags             uint32
+	ExeFile           [MaxPath]uint16
+}
 
 // 通过注册表获取已安装的软件
 func getProduct(key uint32) ([]string, error) {
@@ -47,6 +68,75 @@ func getProduct(key uint32) ([]string, error) {
 func setThreadExecutionState(stateFlags uintptr) uintptr {
 	ret, _, _ := setThreadExecutionStateProc.Call(stateFlags)
 	return ret
+}
+
+// 将ProcessEntry32转换为WindowsProcess
+func newWindowsProcess(e *ProcessEntry32) *WindowsProcess {
+	// Find when the string ends for decoding
+	end := 0
+	for {
+		if e.ExeFile[end] == 0 {
+			break
+		}
+		end++
+	}
+
+	return &WindowsProcess{
+		Pid:        int(e.ProcessID),
+		PPid:       int(e.ParentProcessID),
+		Executable: syscall.UTF16ToString(e.ExeFile[:end]),
+	}
+}
+
+// AllProcesses 获取进程列表
+func AllProcesses() []*WindowsProcess {
+	handle, _, _ := procCreateToolhelp32Snapshot.Call(
+		0x00000002,
+		0)
+	if handle < 0 {
+		ZapLog.Error("获取进程列表错误",
+			zap.Error(syscall.GetLastError()),
+		)
+		return nil
+	}
+	defer procCloseHandle.Call(handle)
+
+	var entry ProcessEntry32
+	entry.Size = uint32(unsafe.Sizeof(entry))
+	ret, _, _ := procProcess32First.Call(handle, uintptr(unsafe.Pointer(&entry)))
+	if ret == 0 {
+		ZapLog.Error("获取进程列表失败",
+			zap.Error(syscall.GetLastError()),
+		)
+		return nil
+	}
+
+	results := make([]*WindowsProcess, 0, 50)
+	for {
+		results = append(results, newWindowsProcess(&entry))
+
+		ret, _, _ := procProcess32Next.Call(handle, uintptr(unsafe.Pointer(&entry)))
+		if ret == 0 {
+			break
+		}
+	}
+
+	return results
+}
+
+// FindProcess 根据进程id获取进程信息
+func FindProcess(pid int) *WindowsProcess {
+	ps := AllProcesses()
+	if ps == nil {
+		return nil
+	}
+	for _, p := range ps {
+		if p.Pid == pid {
+			return p
+		}
+	}
+
+	return nil
 }
 
 // AddHosts 添加hosts
