@@ -10,30 +10,16 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"sync"
-	"syscall"
 	"time"
 )
 
-const (
-	MaxPath           = 260
-	EsContinuous      = 0x80000000
-	EsSystemRequired  = 0x00000001
-	EsDisplayRequired = 0x00000002
-)
-
 var (
-	FastHttpClient               *fasthttp.Client
-	SonyFlake                    *sonyflake.Sonyflake
-	ZapLog                       *zap.Logger
-	LRUCache                     *ecache.Cache
-	fileTypeMap                  sync.Map
-	kernel32                     = syscall.NewLazyDLL("kernel32.dll")
-	procCloseHandle              = kernel32.NewProc("CloseHandle")
-	procCreateToolhelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
-	procProcess32First           = kernel32.NewProc("Process32FirstW")
-	procProcess32Next            = kernel32.NewProc("Process32NextW")
-	setThreadExecutionStateProc  = kernel32.NewProc("SetThreadExecutionState")
-	json                         = sonic.ConfigStd
+	FastHttpClient *fasthttp.Client
+	SonyFlake      *sonyflake.Sonyflake
+	ZapLog         *zap.Logger
+	LRUCache       *ecache.Cache
+	fileTypeMap    sync.Map
+	json           = sonic.ConfigStd
 )
 
 func init() {
