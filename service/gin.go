@@ -1,7 +1,9 @@
 package service
 
 import (
+	"errors"
 	"github.com/go-playground/validator/v10"
+	"io"
 	"reflect"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +11,9 @@ import (
 
 // 判断哪些参数异常，并且返回结构的tag内的msg
 func getValidMsg(err error, obj interface{}) string {
+	if errors.Is(err, io.EOF) {
+		return "缺少参数"
+	}
 	getObj := reflect.TypeOf(obj)
 	if errs, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range errs {

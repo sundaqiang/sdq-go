@@ -11,7 +11,7 @@ func String2Time(times, format string, now bool) time.Time {
 		if now {
 			return time.Now()
 		}
-		return time.Unix(0, 0).UTC()
+		return time.Unix(0, 0)
 	}
 	times = strings.TrimSpace(times)
 	loc, _ := time.LoadLocation("Asia/Shanghai")
@@ -37,12 +37,12 @@ func Timestamp2Time(times int64, now bool) time.Time {
 		if now {
 			return time.Now()
 		}
-		return time.Unix(0, 0).UTC()
+		return time.Unix(0, 0)
 	}
 	if times > 9999999999 {
 		times /= 1000
 	}
-	return time.Unix(times, 0).UTC()
+	return time.Unix(times, 0)
 }
 
 // Timestamp2String 时间戳转时间字符串
