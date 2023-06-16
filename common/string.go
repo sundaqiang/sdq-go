@@ -1,8 +1,10 @@
 package common
 
 import (
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -11,6 +13,24 @@ func String2Bytes(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}
 	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+func CreateRandomStr(length int, charset string) string {
+	// 定义包含英文字母和数字的字符集
+	if charset == "" {
+		charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	}
+
+	// 设置随机种子
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// 生成随机字符串
+	randomString := make([]byte, length)
+	for i := 0; i < length; i++ {
+		randomString[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return string(randomString)
 }
 
 // IsNum 字符串是否为数字

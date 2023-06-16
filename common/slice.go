@@ -51,3 +51,42 @@ func StringInSlice(slice []string, val string) bool {
 	i := sort.SearchStrings(slice, val)
 	return i < len(slice) && slice[i] == val
 }
+
+// DelIntInSlice 删除切片
+func DelIntInSlice(slice []int, element int) []int {
+	slow := 0
+	for fast := 0; fast < len(slice); fast++ {
+		if slice[fast] != element {
+			slice[slow] = slice[fast]
+			slow++
+		}
+	}
+	slice = slice[:slow]
+	return slice
+}
+
+// DelInt64InSlice 删除切片
+func DelInt64InSlice(slice []int64, element int64) []int64 {
+	slow := 0
+	for fast := 0; fast < len(slice); fast++ {
+		if slice[fast] != element {
+			slice[slow] = slice[fast]
+			slow++
+		}
+	}
+	slice = slice[:slow]
+	return slice
+}
+
+// DelStringInSlice 删除切片
+func DelStringInSlice(slice []string, element string) []string {
+	slow := 0
+	for fast := 0; fast < len(slice); fast++ {
+		if slice[fast] != element {
+			slice[slow] = slice[fast]
+			slow++
+		}
+	}
+	slice = slice[:slow]
+	return slice
+}
