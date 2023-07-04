@@ -3,6 +3,7 @@
 package common
 
 import (
+	"github.com/beevik/ntp"
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows/registry"
 	"os"
@@ -21,10 +22,11 @@ const (
 var (
 	kernel32                     = syscall.NewLazyDLL("kernel32.dll")
 	procCloseHandle              = kernel32.NewProc("CloseHandle")
-	procCreateToolhelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
+	procCreateToolHelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
 	procProcess32First           = kernel32.NewProc("Process32FirstW")
 	procProcess32Next            = kernel32.NewProc("Process32NextW")
 	setThreadExecutionStateProc  = kernel32.NewProc("SetThreadExecutionState")
+	setSystemTime                = kernel32.NewProc("SetSystemTime")
 )
 
 type WindowsProcess struct {
@@ -44,6 +46,17 @@ type ProcessEntry32 struct {
 	PriorityClassBase int32
 	Flags             uint32
 	ExeFile           [MaxPath]uint16
+}
+
+type windowsTime struct {
+	wYear         uint16
+	wMonth        uint16
+	wDayOfWeek    uint16
+	wDay          uint16
+	wHour         uint16
+	wMinute       uint16
+	wSecond       uint16
+	wMilliseconds uint16
 }
 
 // 通过注册表获取已安装的软件
@@ -108,7 +121,7 @@ func newWindowsProcess(e *ProcessEntry32) *WindowsProcess {
 
 // AllProcesses 获取进程列表
 func AllProcesses() []*WindowsProcess {
-	handle, _, _ := procCreateToolhelp32Snapshot.Call(
+	handle, _, _ := procCreateToolHelp32Snapshot.Call(
 		0x00000002,
 		0)
 	if handle < 0 {
@@ -235,4 +248,45 @@ func PreventSleepWindows() uintptr {
 // AllowSleepWindows 可以休眠
 func AllowSleepWindows() {
 	setThreadExecutionState(EsContinuous)
+}
+
+// SetWindowsTime 将时间设置到系统时间
+func SetWindowsTime(ntpAddr string) bool {
+	if ntpAddr == "" {
+		ntpAddr = "ntp.aliyun.com"
+	}
+	// 获取网络时间
+	ntpTime, err := ntp.Time(ntpAddr)
+	if err != nil {
+		ZapLog.Error("读取网络时间错误",
+			zap.Error(err),
+		)
+		return false
+	}
+	ntpTime = ntpTime.UTC()
+	// 构建windowsTime结构
+	st := windowsTime{
+		wYear:         uint16(ntpTime.Year()),
+		wMonth:        uint16(ntpTime.Month()),
+		wDayOfWeek:    uint16(ntpTime.Weekday()),
+		wDay:          uint16(ntpTime.Day()),
+		wHour:         uint16(ntpTime.Hour()),
+		wMinute:       uint16(ntpTime.Minute()),
+		wSecond:       uint16(ntpTime.Second()),
+		wMilliseconds: uint16(ntpTime.Nanosecond() / 1000000),
+	}
+	// 调用SetSystemTime函数
+	ret, _, err := setSystemTime.Call(
+		uintptr(unsafe.Pointer(&st)),
+	)
+	if ret == 0 {
+		ZapLog.Error("设置系统时间失败",
+			zap.Error(err),
+			zap.Time("network_time", ntpTime),
+		)
+	}
+	ZapLog.Info("设置系统时间成功",
+		zap.Time("network_time", ntpTime),
+	)
+	return true
 }
