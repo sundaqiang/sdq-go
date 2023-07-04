@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -15,12 +16,14 @@ import (
 
 type GormInfo struct {
 	Dsn      string
+	Driver   string
 	Resolver []Resolver
 }
 
 type Resolver struct {
-	Dsn   string
-	Datas []interface{}
+	Dsn    string
+	Driver string
+	Datas  []interface{}
 }
 
 func initDB(info *GormInfo) {
@@ -31,7 +34,14 @@ func initDB(info *GormInfo) {
 	newLogger.SkipCallerLookup = false
 	newLogger.IgnoreRecordNotFoundError = true
 	var err error
-	Db, err = gorm.Open(mysql.Open(info.Dsn), &gorm.Config{
+	var driver gorm.Dialector
+	switch info.Driver {
+	case "mysql":
+		driver = mysql.Open(info.Dsn)
+	case "sqlite":
+		driver = sqlite.Open(info.Dsn)
+	}
+	Db, err = gorm.Open(driver, &gorm.Config{
 		Logger:      newLogger,
 		PrepareStmt: true,
 		NamingStrategy: schema.NamingStrategy{
@@ -45,8 +55,16 @@ func initDB(info *GormInfo) {
 
 	if len(info.Resolver) > 0 {
 		for _, resolver := range info.Resolver {
+			var resolverDriver gorm.Dialector
+			switch resolver.Driver {
+			case "mysql":
+				resolverDriver = mysql.Open(resolver.Dsn)
+			case "sqlite":
+				resolverDriver = sqlite.Open(resolver.Dsn)
+			}
+
 			err = Db.Use(dbresolver.Register(dbresolver.Config{
-				Sources: []gorm.Dialector{mysql.Open(resolver.Dsn)},
+				Sources: []gorm.Dialector{resolverDriver},
 			}, resolver.Datas...))
 			if err != nil {
 				common.ZapLog.Fatal("数据库连接失败", zap.Error(err))
