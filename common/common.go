@@ -82,7 +82,7 @@ func init() {
 }
 
 // InitLogger 必须
-func InitLogger(logsPath, serverName string) bool {
+func InitLogger(logsPath, serverName string, logsFile bool) bool {
 	if logsPath == "" {
 		logsPath = "logs/"
 	}
@@ -101,10 +101,17 @@ func InitLogger(logsPath, serverName string) bool {
 	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl >= zapcore.ErrorLevel
 	})
-	debugWriter := getLogWriter(logsPath+serverName+"_debug.log", true)
-	infoWriter := getLogWriter(logsPath+serverName+"_info.log", true)
-	warnWriter := getLogWriter(logsPath+serverName+"_warn.log", false)
-	errorWriter := getLogWriter(logsPath+serverName+"_error.log", false)
+	var debugFile, infoFile, warnFile, errorFile string
+	if logsFile {
+		debugFile = logsPath + serverName + "_debug.log"
+		infoFile = logsPath + serverName + "_info.log"
+		warnFile = logsPath + serverName + "_warn.log"
+		errorFile = logsPath + serverName + "_error.log"
+	}
+	debugWriter := getLogWriter(debugFile, true)
+	infoWriter := getLogWriter(infoFile, true)
+	warnWriter := getLogWriter(warnFile, false)
+	errorWriter := getLogWriter(errorFile, false)
 	encoder := getEncoder()
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, zapcore.AddSync(debugWriter), debugLevel),
