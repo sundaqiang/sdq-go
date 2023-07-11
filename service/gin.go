@@ -23,17 +23,17 @@ func initTrans(locale string) (err error) {
 		enT := en.New()
 		uni := ut.New(enT, zhT, enT)
 		var ok bool
-		Trans, ok = uni.GetTranslator(locale)
+		trans, ok = uni.GetTranslator(locale)
 		if !ok {
 			return errors.New("初始化翻译器错误")
 		}
 		switch locale {
 		case "en":
-			err = enTranslations.RegisterDefaultTranslations(v, Trans)
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
 		case "zh":
-			err = zhTranslations.RegisterDefaultTranslations(v, Trans)
+			err = zhTranslations.RegisterDefaultTranslations(v, trans)
 		default:
-			err = enTranslations.RegisterDefaultTranslations(v, Trans)
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
 		}
 		return
 	}
@@ -96,5 +96,14 @@ func GetHttpResError(code int, data any, err error) *gin.H {
 		"success": false,                  // 布尔值，表示本次调用是否成功
 		"code":    code,                   // 整数型，调用失败（success为false）时，服务端返回的错误码
 		"msg":     getValidMsg(err, data), // 字符串，调用失败（success为false）时，服务端返回的错误信息
+	}
+}
+
+// GetHttpResErrorTrans 封装一个错误的返回值,翻译
+func GetHttpResErrorTrans(code int, errs *validator.ValidationErrors) *gin.H {
+	return &gin.H{
+		"success": false,                 // 布尔值，表示本次调用是否成功
+		"code":    code,                  // 整数型，调用失败（success为false）时，服务端返回的错误码
+		"msg":     errs.Translate(trans), // 字符串，调用失败（success为false）时，服务端返回的错误信息
 	}
 }
