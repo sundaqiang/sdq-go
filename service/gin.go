@@ -17,23 +17,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TransStruct struct {
+type RegTrans struct {
+	Struct     []RegStruct
+	Field      []RegField
+	Translator []RegTranslator
+}
+
+type RegStruct struct {
 	Fn    func(sl validator.StructLevel)
 	Types []any
 }
 
-type TransField struct {
+type RegField struct {
 	Tag string
 	Fn  func(fl validator.FieldLevel) bool
 }
 
+type RegTranslator struct {
+	Tag string
+	Msg string
+}
+
 // InitTrans 初始化翻译器
-func initTrans(locale string, structs *[]TransStruct, fields *[]TransField) (err error) {
+func initTrans(locale string, reg *RegTrans) (err error) {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		for _, structs := range *structs {
+		for _, structs := range reg.Struct {
 			v.RegisterStructValidation(structs.Fn, structs.Types)
 		}
-		for _, field := range *fields {
+		for _, field := range reg.Field {
 			if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
 				return err
 			}
@@ -61,6 +72,16 @@ func initTrans(locale string, structs *[]TransStruct, fields *[]TransField) (err
 			err = zhTranslations.RegisterDefaultTranslations(v, trans)
 		default:
 			err = enTranslations.RegisterDefaultTranslations(v, trans)
+		}
+		for _, translator := range reg.Translator {
+			if err := v.RegisterTranslation(
+				translator.Tag,
+				trans,
+				registerTranslator(translator.Tag, translator.Msg),
+				translate,
+			); err != nil {
+				return err
+			}
 		}
 		return
 	}
@@ -119,12 +140,32 @@ func getValidMsg(err error, obj interface{}) string {
 	return err.Error()
 }
 
+// 去除验证Struct前缀
 func removeTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
 	for field, err := range fields {
 		res[field[strings.Index(field, ".")+1:]] = err
 	}
 	return res
+}
+
+// registerTranslator 为自定义字段添加翻译功能
+func registerTranslator(tag string, msg string) validator.RegisterTranslationsFunc {
+	return func(trans ut.Translator) error {
+		if err := trans.Add(tag, msg, false); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// translate 自定义字段的翻译方法
+func translate(trans ut.Translator, fe validator.FieldError) string {
+	msg, err := trans.T(fe.Tag(), fe.Field())
+	if err != nil {
+		panic(fe.(error).Error())
+	}
+	return msg
 }
 
 // ginCors 跨域请求中间件
