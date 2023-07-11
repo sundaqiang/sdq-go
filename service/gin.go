@@ -12,13 +12,40 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+type TransStruct struct {
+	Fn    func(sl validator.StructLevel)
+	Types []any
+}
+
+type TransField struct {
+	Tag string
+	Fn  func(fl validator.FieldLevel) bool
+}
+
 // InitTrans 初始化翻译器
-func initTrans(locale string) (err error) {
+func initTrans(locale string, structs *[]TransStruct, fields *[]TransField) (err error) {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		for _, structs := range *structs {
+			v.RegisterStructValidation(structs.Fn, structs.Types)
+		}
+		for _, field := range *fields {
+			if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
+				return err
+			}
+		}
+		// 注册一个获取json tag的自定义方法
+		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+			if name == "-" {
+				return ""
+			}
+			return name
+		})
 		zhT := zh.New()
 		enT := en.New()
 		uni := ut.New(enT, zhT, enT)
@@ -38,38 +65,6 @@ func initTrans(locale string) (err error) {
 		return
 	}
 	return
-}
-
-// 判断哪些参数异常，并且返回结构的tag内的msg
-func getValidMsg(err error, obj interface{}) string {
-	if errors.Is(err, io.EOF) {
-		return "缺少参数"
-	}
-	getObj := reflect.TypeOf(obj)
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range errs {
-			if f, exist := getObj.Elem().FieldByName(e.Field()); exist {
-				return f.Tag.Get("msg")
-			}
-		}
-	}
-	return err.Error()
-}
-
-// ginCors 跨域请求中间件
-func ginCors() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		method := c.Request.Method
-		c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
-		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
-		c.Header("Access-Control-Allow-Credentials", "true")
-		if method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-		}
-		c.Next()
-	}
 }
 
 // GetHttpResSuccess 封装一个正确的返回值
@@ -102,8 +97,48 @@ func GetHttpResError(code int, data any, err error) *gin.H {
 // GetHttpResErrorTrans 封装一个错误的返回值,翻译
 func GetHttpResErrorTrans(code int, errs *validator.ValidationErrors) *gin.H {
 	return &gin.H{
-		"success": false,                 // 布尔值，表示本次调用是否成功
-		"code":    code,                  // 整数型，调用失败（success为false）时，服务端返回的错误码
-		"msg":     errs.Translate(trans), // 字符串，调用失败（success为false）时，服务端返回的错误信息
+		"success": false,                                  // 布尔值，表示本次调用是否成功
+		"code":    code,                                   // 整数型，调用失败（success为false）时，服务端返回的错误码
+		"msg":     removeTopStruct(errs.Translate(trans)), // 字符串，调用失败（success为false）时，服务端返回的错误信息
+	}
+}
+
+// 判断哪些参数异常，并且返回结构的tag内的msg
+func getValidMsg(err error, obj interface{}) string {
+	if errors.Is(err, io.EOF) {
+		return "缺少参数"
+	}
+	getObj := reflect.TypeOf(obj)
+	if errs, ok := err.(validator.ValidationErrors); ok {
+		for _, e := range errs {
+			if f, exist := getObj.Elem().FieldByName(e.Field()); exist {
+				return f.Tag.Get("msg")
+			}
+		}
+	}
+	return err.Error()
+}
+
+func removeTopStruct(fields map[string]string) map[string]string {
+	res := map[string]string{}
+	for field, err := range fields {
+		res[field[strings.Index(field, ".")+1:]] = err
+	}
+	return res
+}
+
+// ginCors 跨域请求中间件
+func ginCors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
+		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+		c.Next()
 	}
 }
