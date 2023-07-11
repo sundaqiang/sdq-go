@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	Trans  ut.Translator
+	trans  ut.Translator
 	GoCron *gocron.Scheduler
 	Db     *gorm.DB
 	Rdb    []*redis.Client
