@@ -17,11 +17,12 @@ import (
 )
 
 var (
-	trans  ut.Translator
-	GoCron *gocron.Scheduler
-	Db     *gorm.DB
-	Rdb    []*redis.Client
-	sqlDB  *sql.DB
+	trans         ut.Translator
+	ValidatorRegs *ValidatorReg
+	GoCron        *gocron.Scheduler
+	Db            *gorm.DB
+	Rdb           []*redis.Client
+	sqlDB         *sql.DB
 )
 
 // InitGORM 初始化GORM
@@ -54,7 +55,7 @@ InitGin 初始化Gin
 编译需要加tags
 -tags "sonic avx linux amd64"
 */
-func InitGin(serverAddr string, serverPort int, isTrans, isCors bool, reg *RegTrans, router func(r *gin.Engine)) {
+func InitGin(serverAddr string, serverPort int, isTrans, isCors bool, router func(r *gin.Engine)) {
 	if serverAddr != "" {
 		if serverAddr = common.MatchIp(serverAddr); serverAddr == "" {
 			common.ZapLog.Error("Gin初始化失败",
@@ -70,7 +71,7 @@ func InitGin(serverAddr string, serverPort int, isTrans, isCors bool, reg *RegTr
 		return
 	}
 	if isTrans {
-		if err := initTrans("zh", reg); err != nil {
+		if err := initValidator("zh"); err != nil {
 			common.ZapLog.Error("Gin初始化失败",
 				zap.Error(err),
 			)

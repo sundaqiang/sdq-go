@@ -17,34 +17,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RegTrans struct {
-	Struct     []RegStruct
-	Field      []RegField
-	Translator []RegTranslator
+type ValidatorReg struct {
+	Struct     []ValidatorStruct
+	Field      []ValidatorField
+	Translator []ValidatorTranslator
 }
 
-type RegStruct struct {
+type ValidatorStruct struct {
 	Fn    func(sl validator.StructLevel)
 	Types []any
 }
 
-type RegField struct {
+type ValidatorField struct {
 	Tag string
 	Fn  func(fl validator.FieldLevel) bool
 }
 
-type RegTranslator struct {
+type ValidatorTranslator struct {
 	Tag string
 	Msg string
 }
 
 // InitTrans 初始化翻译器
-func initTrans(locale string, reg *RegTrans) (err error) {
+func initValidator(locale string) (err error) {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		for _, structs := range reg.Struct {
+		for _, structs := range ValidatorRegs.Struct {
 			v.RegisterStructValidation(structs.Fn, structs.Types)
 		}
-		for _, field := range reg.Field {
+		for _, field := range ValidatorRegs.Field {
 			if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
 				return err
 			}
@@ -73,7 +73,7 @@ func initTrans(locale string, reg *RegTrans) (err error) {
 		default:
 			err = enTranslations.RegisterDefaultTranslations(v, trans)
 		}
-		for _, translator := range reg.Translator {
+		for _, translator := range ValidatorRegs.Translator {
 			if err := v.RegisterTranslation(
 				translator.Tag,
 				trans,
