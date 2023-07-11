@@ -52,7 +52,7 @@ InitGin 初始化Gin
 编译需要加tags
 -tags "sonic avx linux amd64"
 */
-func InitGin(serverAddr string, serverPort int, isCors bool, router func(r *gin.Engine)) {
+func InitGin(serverAddr string, serverPort int, isTrans, isCors bool, router func(r *gin.Engine)) {
 	if serverAddr != "" {
 		if serverAddr = common.MatchIp(serverAddr); serverAddr == "" {
 			common.ZapLog.Error("Gin初始化失败",
@@ -66,6 +66,14 @@ func InitGin(serverAddr string, serverPort int, isCors bool, router func(r *gin.
 			zap.Error(errors.New("错误的端口号")),
 		)
 		return
+	}
+	if isTrans {
+		if err := initTrans("zh"); err != nil {
+			common.ZapLog.Error("Gin初始化失败",
+				zap.Error(err),
+			)
+			return
+		}
 	}
 	r := gin.New()
 	// 将gin的日志改为zap

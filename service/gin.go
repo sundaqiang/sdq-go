@@ -2,13 +2,46 @@ package service
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/zh"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	enTranslations "github.com/go-playground/validator/v10/translations/en"
+	zhTranslations "github.com/go-playground/validator/v10/translations/zh"
 	"io"
 	"net/http"
 	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
+
+// 定义一个全局翻译器T
+var trans ut.Translator
+
+// InitTrans 初始化翻译器
+func initTrans(locale string) (err error) {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		zhT := zh.New()
+		enT := en.New()
+		uni := ut.New(enT, zhT, enT)
+		var ok bool
+		trans, ok = uni.GetTranslator(locale)
+		if !ok {
+			return errors.New("初始化翻译器错误")
+		}
+		switch locale {
+		case "en":
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
+		case "zh":
+			err = zhTranslations.RegisterDefaultTranslations(v, trans)
+		default:
+			err = enTranslations.RegisterDefaultTranslations(v, trans)
+		}
+		return
+	}
+	return
+}
 
 // 判断哪些参数异常，并且返回结构的tag内的msg
 func getValidMsg(err error, obj interface{}) string {
@@ -24,6 +57,22 @@ func getValidMsg(err error, obj interface{}) string {
 		}
 	}
 	return err.Error()
+}
+
+// ginCors 跨域请求中间件
+func ginCors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
+		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+		c.Next()
+	}
 }
 
 // GetHttpResSuccess 封装一个正确的返回值
@@ -50,21 +99,5 @@ func GetHttpResError(code int, data any, err error) *gin.H {
 		"success": false,                  // 布尔值，表示本次调用是否成功
 		"code":    code,                   // 整数型，调用失败（success为false）时，服务端返回的错误码
 		"msg":     getValidMsg(err, data), // 字符串，调用失败（success为false）时，服务端返回的错误信息
-	}
-}
-
-// ginCors 跨域请求中间件
-func ginCors() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		method := c.Request.Method
-		c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
-		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
-		c.Header("Access-Control-Allow-Credentials", "true")
-		if method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-		}
-		c.Next()
 	}
 }
