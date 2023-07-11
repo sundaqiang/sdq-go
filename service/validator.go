@@ -66,17 +66,19 @@ func initValidator(locale string) (err error) {
 		for _, structs := range defaultRegs.Struct {
 			v.RegisterStructValidation(structs.Fn, structs.Types)
 		}
-		for _, structs := range ValidatorRegs.Struct {
-			v.RegisterStructValidation(structs.Fn, structs.Types)
-		}
 		for _, field := range defaultRegs.Field {
 			if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
 				return err
 			}
 		}
-		for _, field := range ValidatorRegs.Field {
-			if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
-				return err
+		if ValidatorRegs != nil {
+			for _, structs := range ValidatorRegs.Struct {
+				v.RegisterStructValidation(structs.Fn, structs.Types)
+			}
+			for _, field := range ValidatorRegs.Field {
+				if err := v.RegisterValidation(field.Tag, field.Fn); err != nil {
+					return err
+				}
 			}
 		}
 		// 注册一个获取json tag的自定义方法
@@ -113,14 +115,16 @@ func initValidator(locale string) (err error) {
 				return err
 			}
 		}
-		for _, translator := range ValidatorRegs.Translator {
-			if err := v.RegisterTranslation(
-				translator.Tag,
-				trans,
-				registerTranslator(translator.Tag, translator.Msg),
-				translate,
-			); err != nil {
-				return err
+		if ValidatorRegs != nil {
+			for _, translator := range ValidatorRegs.Translator {
+				if err := v.RegisterTranslation(
+					translator.Tag,
+					trans,
+					registerTranslator(translator.Tag, translator.Msg),
+					translate,
+				); err != nil {
+					return err
+				}
 			}
 		}
 		return
