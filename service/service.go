@@ -6,6 +6,7 @@ import (
 	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/redis/go-redis/v9"
 	"github.com/sundaqiang/sdq-go/common"
 	"go.uber.org/zap"
@@ -16,6 +17,7 @@ import (
 )
 
 var (
+	Trans  ut.Translator
 	GoCron *gocron.Scheduler
 	Db     *gorm.DB
 	Rdb    []*redis.Client

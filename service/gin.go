@@ -16,9 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 定义一个全局翻译器T
-var trans ut.Translator
-
 // InitTrans 初始化翻译器
 func initTrans(locale string) (err error) {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
@@ -26,17 +23,17 @@ func initTrans(locale string) (err error) {
 		enT := en.New()
 		uni := ut.New(enT, zhT, enT)
 		var ok bool
-		trans, ok = uni.GetTranslator(locale)
+		Trans, ok = uni.GetTranslator(locale)
 		if !ok {
 			return errors.New("初始化翻译器错误")
 		}
 		switch locale {
 		case "en":
-			err = enTranslations.RegisterDefaultTranslations(v, trans)
+			err = enTranslations.RegisterDefaultTranslations(v, Trans)
 		case "zh":
-			err = zhTranslations.RegisterDefaultTranslations(v, trans)
+			err = zhTranslations.RegisterDefaultTranslations(v, Trans)
 		default:
-			err = enTranslations.RegisterDefaultTranslations(v, trans)
+			err = enTranslations.RegisterDefaultTranslations(v, Trans)
 		}
 		return
 	}
