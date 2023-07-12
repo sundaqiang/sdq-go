@@ -144,8 +144,8 @@ func InitFastHttp(proxyAddr string) {
 }
 
 // InitSonyFlake 初始化雪花Id
-func InitSonyFlake() {
-	SonyFlake = sonyflake.NewSonyflake(sonyflake.Settings{})
+func InitSonyFlake(settings sonyflake.Settings) {
+	SonyFlake = sonyflake.NewSonyflake(settings)
 }
 
 /*
