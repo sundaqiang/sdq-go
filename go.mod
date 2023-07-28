@@ -1,4 +1,4 @@
-module github.com/sundaqiang/sdq-go
+module sdq-go
 
 go 1.20
 
@@ -14,13 +14,13 @@ require (
 	github.com/orca-zhang/ecache v1.1.1
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/sony/sonyflake v1.1.0
+	github.com/sundaqiang/sdq-go v0.0.25
 	github.com/valyala/fasthttp v1.48.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/sys v0.10.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.1
-	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2
 	gorm.io/plugin/dbresolver v1.4.2
 	moul.io/zapgorm2 v1.3.0
@@ -43,7 +43,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
