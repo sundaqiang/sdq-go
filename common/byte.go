@@ -12,10 +12,23 @@ func Bytes2String(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// GetMd5 获取md5
-func GetMd5(file *[]byte) string {
+// ByteGetMd5 获取md5
+func ByteGetMd5(bytes *[]byte) string {
 	fileMd5 := md5.New()
-	_, err := fileMd5.Write(*file)
+	_, err := fileMd5.Write(*bytes)
+	if err != nil {
+		ZapLog.Error("读取MD5失败",
+			zap.Error(err),
+		)
+		return ""
+	}
+	return hex.EncodeToString(fileMd5.Sum(nil))
+}
+
+// StringGetMd5 获取md5
+func StringGetMd5(str string) string {
+	fileMd5 := md5.New()
+	_, err := fileMd5.Write(String2Bytes(str))
 	if err != nil {
 		ZapLog.Error("读取MD5失败",
 			zap.Error(err),

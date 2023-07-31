@@ -58,3 +58,26 @@ func Timestamp2String(times int64, format string) string {
 	}
 	return time.Unix(times, 0).Format(format)
 }
+
+/*
+TimeStart4Day 取某天零点
+
+	now := time.Now()
+	// 取今天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month(), now.Day()))
+	// 取前一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month(), now.Day()-1))
+	// 取后一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month(), now.Day()+1))
+	// 取上个月第一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month()-1, 1))
+	// 取上个月最后一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month()-1, 1).AddDate(0, 1, -1))
+	// 取下个月第一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month()+1, 1))
+	// 取下个月最后一天
+	fmt.Println(common.TimeStart4Day(now.Year(), now.Month()+1, 1).AddDate(0, 1, -1))
+*/
+func TimeStart4Day(year int, month time.Month, day int) time.Time {
+	return time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+}

@@ -15,10 +15,30 @@ func String2Bytes(s string) []byte {
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
 
-func CreateRandomStr(length int, charset string) string {
+/*
+CreateRandomStr 生成随机字符串
+
+	length:字符串长度
+	kind:1=数字、2=小写字母、3=小写字母+数字、4=大写字母、5=大写字母+数字、6=大小写字母、7=大小写字母+数字
+	customCharset:自定义字符集
+*/
+func CreateRandomStr(length, kind int, customCharset string) string {
 	// 定义包含英文字母和数字的字符集
-	if charset == "" {
-		charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	charset := ""
+	if kind < 0 || kind > 7 {
+		return ""
+	}
+	if kind&4 != 0 {
+		charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	}
+	if kind&2 != 0 {
+		charset += "abcdefghijklmnopqrstuvwxyz"
+	}
+	if kind&1 != 0 {
+		charset += "0123456789"
+	}
+	if customCharset != "" {
+		charset = customCharset
 	}
 
 	// 设置随机种子
@@ -30,7 +50,7 @@ func CreateRandomStr(length int, charset string) string {
 		randomString[i] = charset[rand.Intn(len(charset))]
 	}
 
-	return string(randomString)
+	return Bytes2String(randomString)
 }
 
 // IsNum 字符串是否为数字
