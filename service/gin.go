@@ -7,6 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// BindJson 绑定数据
+func BindJson(c *gin.Context, code int, body any) bool {
+	if err := c.ShouldBindJSON(body); err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			GetHttpResError(code, body, err),
+		)
+		return false
+	}
+	return true
+}
+
 // GetHttpResSuccess 封装一个正确的返回值
 func GetHttpResSuccess(code int, data any) *gin.H {
 	return &gin.H{

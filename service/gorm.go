@@ -14,13 +14,11 @@ import (
 
 type GormInfo struct {
 	Driver   *gorm.Dialector
-	Dsn      string
 	Resolver []Resolver
 }
 
 type Resolver struct {
 	Driver *gorm.Dialector
-	Dsn    string
 	Data   []interface{}
 }
 
