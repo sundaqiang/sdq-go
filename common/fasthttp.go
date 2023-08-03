@@ -88,7 +88,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 
 	// 配置请求的url
 	fullUrl := reqArg.Url + reqArg.Path
-	if reqArg != nil && reqArg.Params.Len() > 0 {
+	if reqArg.Params != nil && reqArg.Params.Len() > 0 {
 		fullUrl += "?" + reqArg.Params.String()
 	}
 	req.SetRequestURI(fullUrl)
