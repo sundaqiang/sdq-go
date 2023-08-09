@@ -19,6 +19,18 @@ func BindJson(c *gin.Context, code int, body any) bool {
 	return true
 }
 
+// BindForm 绑定数据
+func BindForm(c *gin.Context, code int, body any) bool {
+	if err := c.ShouldBind(body); err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			GetHttpResError(code, body, err),
+		)
+		return false
+	}
+	return true
+}
+
 // BindQuery 绑定数据
 func BindQuery(c *gin.Context, code int, body any) bool {
 	if err := c.ShouldBindQuery(body); err != nil {
