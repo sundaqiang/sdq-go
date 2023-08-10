@@ -194,7 +194,8 @@ func getValidMsg(err error, obj interface{}) string {
 		return "缺少参数"
 	}
 	getObj := reflect.TypeOf(obj)
-	if errs, ok := err.(validator.ValidationErrors); ok {
+	var errs validator.ValidationErrors
+	if errors.As(err, &errs) {
 		for _, e := range errs {
 			if f, exist := getObj.Elem().FieldByName(e.Field()); exist {
 				return f.Tag.Get("msg")
