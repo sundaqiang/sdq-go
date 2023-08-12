@@ -19,7 +19,7 @@ var (
 	ZapLog         *zap.Logger
 	LRUCache       *ecache.Cache
 	fileTypeMap    sync.Map
-	json           = sonic.ConfigStd
+	json           = sonic.ConfigFastest
 )
 
 func init() {

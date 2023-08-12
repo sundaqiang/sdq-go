@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/bytedance/sonic"
 	"go.uber.org/zap"
 	"reflect"
 )
@@ -70,6 +71,7 @@ func Json2Struct(jsonData any, res any) bool {
 		ZapLog.Error("不支持的数据类型")
 		return false
 	}
+	sonic.Pretouch(reflect.TypeOf(res).Elem())
 	err := json.Unmarshal(req, res)
 	if err != nil {
 		ZapLog.Error("json转换struct失败",
@@ -92,6 +94,7 @@ func Json2Map(jsonData any) *map[string]interface{} {
 		ZapLog.Error("不支持的数据类型")
 	}
 	logData := make(map[string]interface{})
+	sonic.Pretouch(reflect.TypeOf(logData))
 	err := json.Unmarshal(req, &logData)
 	if err != nil {
 		ZapLog.Error("json转换map失败",
@@ -105,6 +108,7 @@ func Json2Map(jsonData any) *map[string]interface{} {
 // Struct2Byte 结构体转字节集
 func Struct2Byte(jsonData any) []byte {
 	var res []byte
+	sonic.Pretouch(reflect.TypeOf(jsonData).Elem())
 	res, err := json.Marshal(jsonData)
 	if err != nil {
 		ZapLog.Error("struct转换json_byte失败",
@@ -119,6 +123,7 @@ func Struct2Byte(jsonData any) []byte {
 // Struct2String 结构体转字符串
 func Struct2String(jsonData any) string {
 	var res []byte
+	sonic.Pretouch(reflect.TypeOf(jsonData).Elem())
 	res, err := json.Marshal(jsonData)
 	if err != nil {
 		ZapLog.Error("struct转换json_string失败",

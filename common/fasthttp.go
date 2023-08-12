@@ -3,8 +3,10 @@ package common
 import (
 	"bufio"
 	"errors"
+	"github.com/bytedance/sonic"
 	"go.uber.org/zap"
 	"net"
+	"reflect"
 	"strings"
 	"time"
 
@@ -122,6 +124,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 		contentType = `application/x-www-form-urlencoded; charset=UTF-8`
 	} else {
 		if reqArg.BodyJson != nil {
+			sonic.Pretouch(reflect.TypeOf(reqArg.BodyJson).Elem())
 			bodyByte, _ := json.Marshal(reqArg.BodyJson)
 			req.SetBody(bodyByte)
 			contentType = `application/json; charset=UTF-8`
