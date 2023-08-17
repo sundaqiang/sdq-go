@@ -9,6 +9,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"sync"
 	"time"
 )
@@ -81,12 +82,20 @@ func init() {
 	fileTypeMap.Store("2E7261FD", "ram")         // Real Audio (ram)
 }
 
-// InitLogger 必须
-func InitLogger(logsPath, serverName string, logsFile bool) bool {
-	if logsPath == "" {
-		logsPath = "logs/"
+/*
+InitLogger 必须
+
+	&lumberjack.Logger{
+		Filename:   filename,
+		MaxSize:    1,
+		MaxBackups: 30,
+		MaxAge:     7,
+		LocalTime:  true,
+		Compress:   false,
 	}
-	if serverName == "" {
+*/
+func InitLogger(logger *lumberjack.Logger) bool {
+	if logger == nil {
 		return false
 	}
 	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
@@ -101,17 +110,33 @@ func InitLogger(logsPath, serverName string, logsFile bool) bool {
 	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl >= zapcore.ErrorLevel
 	})
-	var debugFile, infoFile, warnFile, errorFile string
-	if logsFile {
-		debugFile = logsPath + serverName + "_debug.log"
-		infoFile = logsPath + serverName + "_info.log"
-		warnFile = logsPath + serverName + "_warn.log"
-		errorFile = logsPath + serverName + "_error.log"
+	var debugLogger, infoLogger, warnLogger, errorLogger *lumberjack.Logger
+	if logger.Filename != "" {
+		debugLogger = &lumberjack.Logger{
+			Filename: logger.Filename + "_debug.log", MaxSize: logger.MaxSize,
+			MaxBackups: logger.MaxBackups, MaxAge: logger.MaxAge,
+			LocalTime: logger.LocalTime, Compress: logger.Compress,
+		}
+		infoLogger = &lumberjack.Logger{
+			Filename: logger.Filename + "_info.log", MaxSize: logger.MaxSize,
+			MaxBackups: logger.MaxBackups, MaxAge: logger.MaxAge,
+			LocalTime: logger.LocalTime, Compress: logger.Compress,
+		}
+		warnLogger = &lumberjack.Logger{
+			Filename: logger.Filename + "_warn.log", MaxSize: logger.MaxSize,
+			MaxBackups: logger.MaxBackups, MaxAge: logger.MaxAge,
+			LocalTime: logger.LocalTime, Compress: logger.Compress,
+		}
+		errorLogger = &lumberjack.Logger{
+			Filename: logger.Filename + "_error.log", MaxSize: logger.MaxSize,
+			MaxBackups: logger.MaxBackups, MaxAge: logger.MaxAge,
+			LocalTime: logger.LocalTime, Compress: logger.Compress,
+		}
 	}
-	debugWriter := getLogWriter(debugFile, true)
-	infoWriter := getLogWriter(infoFile, true)
-	warnWriter := getLogWriter(warnFile, false)
-	errorWriter := getLogWriter(errorFile, false)
+	debugWriter := getLogWriter(debugLogger, true)
+	infoWriter := getLogWriter(infoLogger, true)
+	warnWriter := getLogWriter(warnLogger, false)
+	errorWriter := getLogWriter(errorLogger, false)
 	encoder := getEncoder()
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, zapcore.AddSync(debugWriter), debugLevel),
@@ -144,8 +169,16 @@ func InitFastHttp(proxyAddr string) {
 }
 
 // InitSonyFlake 初始化雪花Id
-func InitSonyFlake(settings sonyflake.Settings) {
-	SonyFlake = sonyflake.NewSonyflake(settings)
+func InitSonyFlake(settings sonyflake.Settings) bool {
+	var err error
+	SonyFlake, err = sonyflake.New(settings)
+	if err != nil {
+		ZapLog.Error("雪花id初始化失败",
+			zap.Error(err),
+		)
+		return false
+	}
+	return true
 }
 
 /*

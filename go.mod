@@ -9,13 +9,13 @@ require (
 	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-contrib/zap v0.1.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-co-op/gocron v1.31.1
+	github.com/go-co-op/gocron v1.31.2
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.15.0
 	github.com/orca-zhang/ecache v1.1.1
 	github.com/redis/go-redis/v9 v9.0.5
-	github.com/sony/sonyflake v1.1.0
+	github.com/sony/sonyflake v1.2.0
 	github.com/valyala/fasthttp v1.48.0
 	go.uber.org/zap v1.25.0
 	golang.org/x/crypto v0.12.0
@@ -23,7 +23,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.3
-	gorm.io/plugin/dbresolver v1.4.3
+	gorm.io/plugin/dbresolver v1.4.6
 	moul.io/zapgorm2 v1.3.0
 )
 

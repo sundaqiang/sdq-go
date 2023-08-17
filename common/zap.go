@@ -19,21 +19,13 @@ func getEncoder() zapcore.Encoder {
 	return zapcore.NewJSONEncoder(encoderConfig)
 }
 
-func getLogWriter(filename string, stdOut bool) zapcore.WriteSyncer {
+func getLogWriter(logger *lumberjack.Logger, stdOut bool) zapcore.WriteSyncer {
 	var ws io.Writer
-	if filename != "" {
-		lumberJackLogger := &lumberjack.Logger{
-			Filename:   filename,
-			MaxSize:    1,
-			MaxBackups: 30,
-			MaxAge:     7,
-			LocalTime:  true,
-			Compress:   false,
-		}
+	if logger != nil {
 		if stdOut {
-			ws = io.MultiWriter(lumberJackLogger, os.Stdout)
+			ws = io.MultiWriter(logger, os.Stdout)
 		} else {
-			ws = io.MultiWriter(lumberJackLogger, os.Stderr)
+			ws = io.MultiWriter(logger, os.Stderr)
 		}
 	} else {
 		if stdOut {
