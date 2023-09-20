@@ -66,7 +66,7 @@ func GetHttpResSuccess(c *gin.Context, status, code int, data any) {
 
 // GetHttpResFailure 封装一个失败的返回值
 func GetHttpResFailure(c *gin.Context, status, code int, msg string) {
-	c.JSON(
+	c.AbortWithStatusJSON(
 		status,
 		&gin.H{
 			"success":    false, // 布尔值，表示本次调用是否成功
@@ -80,7 +80,7 @@ func GetHttpResFailure(c *gin.Context, status, code int, msg string) {
 
 // GetHttpResError 封装一个错误的返回值
 func GetHttpResError(c *gin.Context, status, code int, data any, err error) {
-	c.JSON(
+	c.AbortWithStatusJSON(
 		status,
 		&gin.H{
 			"success":    false, // 布尔值，表示本次调用是否成功
@@ -100,7 +100,7 @@ func GetHttpResErrorTrans(c *gin.Context, status, code int, err error) {
 	}
 	var errs validator.ValidationErrors
 	if errors.As(err, &errs) {
-		c.JSON(
+		c.AbortWithStatusJSON(
 			status,
 			&gin.H{
 				"success":    false, // 布尔值，表示本次调用是否成功
