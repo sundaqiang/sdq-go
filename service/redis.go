@@ -9,18 +9,21 @@ import (
 	"go.uber.org/zap"
 )
 
-type RdbInfo struct {
-	Addr     string
-	Password string
-	DB       int
+type Redis struct {
+	Network  string `toml:"network"`
+	Addr     string `toml:"addr"`
+	Username string `toml:"username"`
+	Password string `toml:"password"`
+	DB       int    `toml:"db"`
 }
 
-func (r *RdbInfo) initRedis() {
+func (r *Redis) initRedis() {
 	ctx := context.Background()
 	client := redis.NewClient(&redis.Options{
 		// 连接信息
-		Network:  "tcp",      // 网络类型，tcp or unix，默认tcp
+		Network:  r.Network,  // 网络类型，tcp or unix，默认tcp
 		Addr:     r.Addr,     // 主机名+冒号+端口，默认localhost:6379
+		Username: r.Username, // 用户
 		Password: r.Password, // 密码
 		DB:       r.DB,       // redis数据库index
 		// 连接池容量及闲置连接数量

@@ -29,14 +29,14 @@ var (
 )
 
 // InitGORM 初始化GORM
-func InitGORM(info *GormInfo) {
+func InitGORM(info *Gorm) {
 	if info != nil {
 		initDB(info)
 	}
 }
 
 // InitRdb 初始化Redis
-func InitRdb(info *RdbInfo) {
+func InitRdb(info *Redis) {
 	if info != nil {
 		info.initRedis()
 	}

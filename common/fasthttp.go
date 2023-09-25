@@ -13,6 +13,34 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type FastReqArg struct {
+	Url          string
+	Path         string
+	Params       *fasthttp.Args
+	Body         *fasthttp.Args
+	BodyJson     any
+	Method       string
+	ContentType  string
+	UserAgent    string
+	Cookie       string
+	MergedCookie bool
+	Headers      *[]FastHeader
+	Timeout      time.Duration
+}
+
+type FastResArg struct {
+	Body       []byte
+	BodyJson   any
+	Cookie     string
+	StatusCode int
+	Header     string
+}
+
+type FastHeader struct {
+	Name  string
+	Value string
+}
+
 // 代理配置
 func fastHTTPDialer(proxyAddr string) fasthttp.DialFunc {
 	return func(addr string) (net.Conn, error) {
@@ -44,34 +72,6 @@ func fastHTTPDialer(proxyAddr string) fasthttp.DialFunc {
 		}
 		return conn, nil
 	}
-}
-
-type FastReqArg struct {
-	Url          string
-	Path         string
-	Params       *fasthttp.Args
-	Body         *fasthttp.Args
-	BodyJson     any
-	Method       string
-	ContentType  string
-	UserAgent    string
-	Cookie       string
-	MergedCookie bool
-	Headers      *[]FastHeader
-	Timeout      time.Duration
-}
-
-type FastResArg struct {
-	Body       []byte
-	BodyJson   any
-	Cookie     string
-	StatusCode int
-	Header     string
-}
-
-type FastHeader struct {
-	Name  string
-	Value string
 }
 
 func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {

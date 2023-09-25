@@ -23,11 +23,11 @@ type TypeFieldMap map[reflect.Type][]FieldInfo
 var fieldInfoCache = make(TypeFieldMap)
 
 // cacheFieldInfo 缓存struct类型的字段信息
-func cacheFieldInfo(typ reflect.Type) []FieldInfo {
+func cacheFieldInfo(typ reflect.Type, tag string) []FieldInfo {
 	var fields []FieldInfo
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
-		name, isOmitted := field.Tag.Lookup("json")
+		name, isOmitted := field.Tag.Lookup(tag)
 		if isOmitted {
 			name = field.Name
 		}
@@ -51,12 +51,12 @@ func cacheFieldInfo(typ reflect.Type) []FieldInfo {
 }
 
 // getFields 返回指定struct类型的字段信息列表
-func getFields(typ reflect.Type) []FieldInfo {
+func getFields(typ reflect.Type, tag string) []FieldInfo {
 	fields, ok := fieldInfoCache[typ]
 	if ok {
 		return fields
 	}
-	return cacheFieldInfo(typ)
+	return cacheFieldInfo(typ, tag)
 }
 
 // Json2Struct json转结构体
@@ -136,19 +136,17 @@ func Struct2String(jsonData any) string {
 }
 
 // StructAssign 复制结构体
-func StructAssign(target, source interface{}) {
+func StructAssign(target, source interface{}, tag string) {
 	bVal := reflect.ValueOf(target).Elem()
 	vVal := reflect.ValueOf(source).Elem()
 	bTypeOfT := bVal.Type()
 	vTypeOfT := vVal.Type()
-
-	vFields := getFields(vTypeOfT)
+	vFields := getFields(vTypeOfT, tag)
 	vFieldMap := make(map[string]reflect.Value)
 	for i := 0; i < len(vFields); i++ {
 		vFieldMap[vFields[i].Name] = vVal.Field(i)
 	}
-
-	bFields := getFields(bTypeOfT)
+	bFields := getFields(bTypeOfT, tag)
 	for _, field := range bFields {
 		if v, ok := vFieldMap[field.Name]; ok {
 			if field.IsSlice {
@@ -160,16 +158,18 @@ func StructAssign(target, source interface{}) {
 					elem := v.Index(j)
 					targetElem := targetSlice.Index(j)
 					if field.ElemType.Kind() == reflect.Struct {
-						StructAssign(targetElem.Addr().Interface(), elem.Addr().Interface())
+						StructAssign(targetElem.Addr().Interface(), elem.Addr().Interface(), tag)
 					} else {
 						targetElem.Set(elem)
 					}
 				}
 				bVal.FieldByIndex(field.FieldPath).Set(targetSlice)
 			} else if field.IsStruct {
-				StructAssign(bVal.FieldByIndex(field.FieldPath).Addr().Interface(), v.Addr().Interface())
+				StructAssign(bVal.FieldByIndex(field.FieldPath).Addr().Interface(), v.Addr().Interface(), tag)
 			} else {
-				bVal.FieldByIndex(field.FieldPath).Set(v)
+				if field.Name != "" {
+					bVal.FieldByIndex(field.FieldPath).Set(v)
+				}
 			}
 		}
 	}
