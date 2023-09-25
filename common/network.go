@@ -80,8 +80,11 @@ func GetExternalIP4() (ip string) {
 	defer fasthttp.ReleaseRequest(req) // 用完需要释放资源
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源
+	req.SetTimeout(10 * time.Second)
 	ipUrls := []string{
 		"https://myip.ipip.net",
+		"http://members.3322.org/dyndns/getip",
+		"https://whois.pconline.com.cn/ipJson.jsp?json=true",
 		"https://myexternalip.com/raw",
 		"https://ipinfo.io/ip",
 	}
