@@ -43,7 +43,7 @@ type Other struct {
 	FastHttp  bool   `toml:"fast-http"`
 	ProxyAddr string `toml:"proxy-addr"`
 	Cron      bool   `toml:"cron"`
-	CronBlock bool   `toml:"cron-block"`
+	CronAsync bool   `toml:"cron-async"`
 }
 
 var k = koanf.New(".")
@@ -90,7 +90,7 @@ func InitConfig(filePath, prefix string, conf any) error {
 			common.InitFastHttp(config.Other.ProxyAddr)
 		}
 		if config.Other.Cron {
-			InitGoCron(config.Other.CronBlock)
+			InitGoCron(config.Other.CronAsync)
 		}
 	}
 	return nil

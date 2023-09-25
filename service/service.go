@@ -43,16 +43,14 @@ func InitRdb(info *Redis) {
 }
 
 // InitGoCron 初始化GoCron
-func InitGoCron(cronBlock bool) {
+func InitGoCron(cronAsync bool) {
 	t, timeLocationErr := time.LoadLocation("Asia/Shanghai")
 	if timeLocationErr != nil {
 		t = time.FixedZone("CST", 8*3600)
 	}
 	GoCron = gocron.NewScheduler(t)
 	GoCron.SingletonModeAll()
-	if cronBlock {
-		GoCron.StartBlocking()
-	} else {
+	if cronAsync {
 		GoCron.StartAsync()
 	}
 }
