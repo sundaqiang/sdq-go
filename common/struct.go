@@ -1,8 +1,8 @@
 package common
 
 import (
+	"errors"
 	"github.com/bytedance/sonic"
-	"go.uber.org/zap"
 	"reflect"
 )
 
@@ -60,7 +60,7 @@ func getFields(typ reflect.Type, tag string) []FieldInfo {
 }
 
 // Json2Struct json转结构体
-func Json2Struct(jsonData any, res any) bool {
+func Json2Struct(jsonData any, res any) error {
 	var req []byte
 	switch jsonData.(type) {
 	case []byte:
@@ -68,18 +68,14 @@ func Json2Struct(jsonData any, res any) bool {
 	case string:
 		req = String2Bytes(jsonData.(string))
 	default:
-		ZapLog.Error("不支持的数据类型")
-		return false
+		return errors.New("不支持的数据类型")
 	}
 	sonic.Pretouch(reflect.TypeOf(res).Elem())
 	err := json.Unmarshal(req, res)
 	if err != nil {
-		ZapLog.Error("json转换struct失败",
-			zap.String("json_data", string(req)),
-			zap.Error(err))
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 // Json2Map json转Map
@@ -91,48 +87,36 @@ func Json2Map(jsonData any) *map[string]interface{} {
 	case string:
 		req = []byte(jsonData.(string))
 	default:
-		ZapLog.Error("不支持的数据类型")
+		return nil
 	}
 	logData := make(map[string]interface{})
 	sonic.Pretouch(reflect.TypeOf(logData))
 	err := json.Unmarshal(req, &logData)
 	if err != nil {
-		ZapLog.Error("json转换map失败",
-			zap.String("json_data", string(req)),
-			zap.Error(err),
-		)
+		return nil
 	}
 	return &logData
 }
 
 // Struct2Byte 结构体转字节集
-func Struct2Byte(jsonData any) []byte {
-	var res []byte
+func Struct2Byte(jsonData any) ([]byte, error) {
 	sonic.Pretouch(reflect.TypeOf(jsonData).Elem())
 	res, err := json.Marshal(jsonData)
 	if err != nil {
-		ZapLog.Error("struct转换json_byte失败",
-			zap.Reflect("data", jsonData),
-			zap.Error(err),
-		)
-		res = []byte("{}")
+		return nil, err
 	}
-	return res
+	return res, nil
 }
 
 // Struct2String 结构体转字符串
-func Struct2String(jsonData any) string {
+func Struct2String(jsonData any) (string, error) {
 	var res []byte
 	sonic.Pretouch(reflect.TypeOf(jsonData).Elem())
 	res, err := json.Marshal(jsonData)
 	if err != nil {
-		ZapLog.Error("struct转换json_string失败",
-			zap.Reflect("data", jsonData),
-			zap.Error(err),
-		)
-		return "{}"
+		return "{}", err
 	}
-	return Bytes2String(res)
+	return Bytes2String(res), nil
 }
 
 // StructAssign 复制结构体

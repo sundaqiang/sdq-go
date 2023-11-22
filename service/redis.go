@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"github.com/gin-contrib/requestid"
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"github.com/sundaqiang/sdq-go/common"
+	"net"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,6 +17,63 @@ type Redis struct {
 	Username string `toml:"username"`
 	Password string `toml:"password"`
 	DB       int    `toml:"db"`
+}
+
+type LogHook struct{}
+
+func (LogHook) DialHook(next redis.DialHook) redis.DialHook {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return next(ctx, network, addr)
+	}
+}
+func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		c, ok := ctx.(*gin.Context)
+		if ok {
+			l := ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c)))
+			if cmd.Err() != nil {
+				l.Error(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.Error(cmd.Err()),
+				)
+			} else {
+				l.Debug(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.String("cmd", cmd.String()),
+				)
+			}
+		}
+		next(ctx, cmd)
+		return nil
+	}
+}
+
+func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return func(ctx context.Context, cmds []redis.Cmder) error {
+		c, ok := ctx.(*gin.Context)
+		if ok {
+			l := ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c)))
+			for _, cmd := range cmds {
+				if cmd.Err() != nil {
+					l.Error(
+						"redis_trace",
+						zap.Error(cmd.Err()),
+						zap.Any("args", cmd.Args()),
+					)
+				} else {
+					l.Debug(
+						"redis_trace",
+						zap.String("cmd", cmd.String()),
+						zap.Any("args", cmd.Args()),
+					)
+				}
+			}
+		}
+		next(ctx, cmds)
+		return nil
+	}
 }
 
 func (r *Redis) initRedis() {
@@ -41,9 +100,10 @@ func (r *Redis) initRedis() {
 		MaxRetryBackoff: 512 * time.Millisecond, // 每次计算重试间隔时间的上限，默认512毫秒，-1表示取消间隔
 	})
 	if err := client.Ping(ctx).Err(); err != nil {
-		common.ZapLog.Fatal("redis连接失败", zap.Error(err))
+		ZapLog.Fatal("redis连接失败", zap.Error(err))
 	} else {
+		client.AddHook(LogHook{})
 		Rdb = append(Rdb, client)
-		common.ZapLog.Info("redis连接成功")
+		ZapLog.Info("redis连接成功")
 	}
 }

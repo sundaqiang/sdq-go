@@ -1,7 +1,10 @@
 package service
 
 import (
+	"context"
+	"github.com/gin-gonic/gin"
 	"github.com/sundaqiang/sdq-go/common"
+	"go.uber.org/zap/zapcore"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"time"
@@ -35,11 +38,27 @@ type Resolver struct {
 
 func initDB(info *Gorm) {
 	// 将gorm的日志改为zap
-	newLogger := zapgorm2.New(common.ZapLog)
+	newLogger := zapgorm2.New(ZapLog)
 	newLogger.LogLevel = logger.Info
 	newLogger.SlowThreshold = time.Second
 	newLogger.SkipCallerLookup = false
 	newLogger.IgnoreRecordNotFoundError = true
+	if config.Server.Trace != "" {
+		newLogger.Context = func(ctx context.Context) []zapcore.Field {
+			c, ok := ctx.(*gin.Context)
+			if ok {
+				return []zapcore.Field{
+					zap.String(
+						config.Server.Trace,
+						c.Writer.Header().Get(
+							common.KebabString(config.Server.Trace),
+						),
+					),
+				}
+			}
+			return []zapcore.Field{}
+		}
+	}
 	var err error
 	var driver gorm.Dialector
 	switch info.Type {
@@ -49,15 +68,16 @@ func initDB(info *Gorm) {
 		driver = sqlite.Open(info.Name)
 	}
 	Db, err = gorm.Open(driver, &gorm.Config{
-		Logger:      newLogger,
-		PrepareStmt: true,
+		Logger:                 newLogger,
+		SkipDefaultTransaction: true,
+		PrepareStmt:            true,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
 	})
 
 	if err != nil {
-		common.ZapLog.Fatal("数据库连接失败", zap.Error(err))
+		ZapLog.Fatal("数据库连接失败", zap.Error(err))
 	}
 
 	if len(info.Resolver) > 0 {
@@ -72,18 +92,18 @@ func initDB(info *Gorm) {
 				Sources: []gorm.Dialector{driver},
 			}, resolver.Data...))
 			if err != nil {
-				common.ZapLog.Fatal("数据库连接失败", zap.Error(err))
+				ZapLog.Fatal("数据库连接失败", zap.Error(err))
 			}
 		}
 	}
 
-	sqlDB, err = Db.DB()
+	sqlDB, err := Db.DB()
 	sqlDB.SetMaxOpenConns(500)
 	sqlDB.SetMaxIdleConns(50)
 	sqlDB.SetConnMaxLifetime(15 * time.Minute)
 	if err != nil {
-		common.ZapLog.Fatal("数据库连接状态", zap.Error(err))
+		ZapLog.Fatal("数据库连接状态", zap.Error(err))
 	} else {
-		common.ZapLog.Info("数据库连接成功")
+		ZapLog.Info("数据库连接成功")
 	}
 }

@@ -6,15 +6,18 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/sony/sonyflake"
 	"github.com/sundaqiang/sdq-go/common"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"strings"
+	"time"
 )
 
 type Config struct {
 	Server   *Server   `toml:"server"`
 	Log      *Log      `toml:"log"`
 	Database *Database `toml:"database"`
+	Cache    *Cache    `toml:"cache"`
 	Other    *Other    `toml:"other"`
 }
 
@@ -24,9 +27,11 @@ type Database struct {
 }
 
 type Server struct {
-	Name string `toml:"name"`
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
+	Name  string `toml:"name"`
+	Host  string `toml:"host"`
+	Port  int    `toml:"port"`
+	Trace string `toml:"trace"`
+	Trans bool   `toml:"trans"`
 }
 
 type Log struct {
@@ -37,6 +42,16 @@ type Log struct {
 	MaxAge     int    `toml:"max-age"`
 	LocalTime  bool   `toml:"local-time"`
 	Compress   bool   `toml:"compress"`
+	CallerSkip int    `toml:"caller-skip"`
+}
+
+type Cache struct {
+	BucketCnt  uint16 `toml:"bucket-cnt"`
+	CapOne     uint16 `toml:"cap-one"`
+	CapTwo     uint16 `toml:"cap-two"`
+	Rdb        int    `toml:"rdb"`
+	Size       int    `toml:"size"`
+	Expiration int64  `toml:"expiration"`
 }
 
 type Other struct {
@@ -44,6 +59,7 @@ type Other struct {
 	ProxyAddr string `toml:"proxy-addr"`
 	Cron      bool   `toml:"cron"`
 	CronAsync bool   `toml:"cron-async"`
+	SonyFlake int64  `toml:"sony-flake"`
 }
 
 var k = koanf.New(".")
@@ -65,16 +81,15 @@ func InitConfig(filePath, prefix string, conf any) error {
 	if err != nil {
 		return err
 	}
-	var config Config
 	common.StructAssign(&config, conf, "toml")
-	if config.Log != nil && !common.InitLogger(&lumberjack.Logger{
+	if config.Log != nil && !InitLogger(&lumberjack.Logger{
 		Filename:   config.Log.Path + "/" + config.Log.File,
 		MaxSize:    config.Log.MaxSize,
 		MaxBackups: config.Log.MaxBackups,
 		MaxAge:     config.Log.MaxAge,
 		LocalTime:  config.Log.LocalTime,
 		Compress:   config.Log.Compress,
-	}) {
+	}, config.Log.CallerSkip) {
 		return errors.New("初始化日志失败")
 	}
 	if config.Database != nil {
@@ -87,11 +102,32 @@ func InitConfig(filePath, prefix string, conf any) error {
 	}
 	if config.Other != nil {
 		if config.Other.FastHttp {
-			common.InitFastHttp(config.Other.ProxyAddr)
+			InitFastHttp(config.Other.ProxyAddr)
 		}
 		if config.Other.Cron {
 			InitGoCron(config.Other.CronAsync)
 		}
+		if config.Other.SonyFlake > 0 {
+			InitSonyFlake(sonyflake.Settings{
+				StartTime: common.Timestamp2Time(config.Other.SonyFlake, true),
+			})
+		}
+
+	}
+	if config.Cache != nil &&
+		config.Cache.BucketCnt > 0 &&
+		config.Cache.CapOne > 0 &&
+		config.Cache.CapTwo > 0 &&
+		config.Cache.Rdb > 0 &&
+		config.Cache.Size > 0 &&
+		config.Cache.Expiration > 0 {
+		InitLocalCache(
+			config.Cache.BucketCnt,
+			config.Cache.CapOne,
+			config.Cache.CapTwo,
+			Rdb[config.Cache.Rdb],
+			config.Cache.Size,
+			time.Duration(config.Cache.Expiration)*time.Second)
 	}
 	return nil
 }

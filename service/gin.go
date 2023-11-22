@@ -4,113 +4,147 @@ import (
 	"errors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-co-op/gocron"
 	"github.com/go-playground/validator/v10"
+	"github.com/orca-zhang/ecache"
+	"github.com/redis/go-redis/v9"
+	"github.com/sony/sonyflake"
+	"github.com/valyala/fasthttp"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
+type Tracer struct {
+	Cache *ecache.Cache
+	Ctx   *gin.Context
+	Cron  *gocron.Scheduler
+	Db    *gorm.DB
+	Http  *fasthttp.Client
+	Log   *zap.Logger
+	Rdb   []*redis.Client
+	Sony  *sonyflake.Sonyflake
+	Tid   string
+}
+
+// GetTracer 获取上下文实例
+func GetTracer(c *gin.Context) *Tracer {
+	return &Tracer{
+		Cache: LRUCache,
+		Cron:  GoCron,
+		Ctx:   c,
+		Db:    Db.WithContext(c),
+		Http:  FastHttpClient,
+		Log:   ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c))),
+		Rdb:   Rdb,
+		Sony:  SonyFlake,
+		Tid:   requestid.Get(c),
+	}
+}
+
 // BindJson 绑定数据
-func BindJson(c *gin.Context, code int, body any) bool {
-	if err := c.ShouldBindJSON(body); err != nil {
-		if IsTrans {
-			GetHttpResErrorTrans(c, http.StatusBadRequest, code, err)
+func (t *Tracer) BindJson(code int, body any) bool {
+	if err := t.Ctx.ShouldBindJSON(body); err != nil {
+		if config.Server.Trans {
+			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
 			return false
 		}
-		GetHttpResError(c, http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusBadRequest, code, body, err)
 		return false
 	}
 	return true
 }
 
 // BindForm 绑定数据
-func BindForm(c *gin.Context, code int, body any) bool {
-	if err := c.ShouldBindWith(body, binding.Form); err != nil {
-		if IsTrans {
-			GetHttpResErrorTrans(c, http.StatusBadRequest, code, err)
+func (t *Tracer) BindForm(code int, body any) bool {
+	if err := t.Ctx.ShouldBindWith(body, binding.Form); err != nil {
+		if config.Server.Trans {
+			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
 			return false
 		}
-		GetHttpResError(c, http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusBadRequest, code, body, err)
 		return false
 	}
 	return true
 }
 
 // BindQuery 绑定数据
-func BindQuery(c *gin.Context, code int, body any) bool {
-	if err := c.ShouldBindQuery(body); err != nil {
-		if IsTrans {
-			GetHttpResErrorTrans(c, http.StatusBadRequest, code, err)
+func (t *Tracer) BindQuery(code int, body any) bool {
+	if err := t.Ctx.ShouldBindQuery(body); err != nil {
+		if config.Server.Trans {
+			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
 			return false
 		}
-		GetHttpResError(c, http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusBadRequest, code, body, err)
 		return false
 	}
 	return true
 }
 
 // GetHttpResSuccess 封装一个正确的返回值
-func GetHttpResSuccess(c *gin.Context, status, code int, data any) {
-	c.JSON(
+func (t *Tracer) GetHttpResSuccess(status, code int, data any) {
+	t.Ctx.JSON(
 		status,
 		&gin.H{
-			"success":    true, // 布尔值，表示本次调用是否成功
-			"code":       code,
-			"request_id": requestid.Get(c),
-			"data":       data, // 调用成功（success为true）时，服务端返回的数据。 不允许返回JS中undefine结果，0，false，"" 等
+			"success":           true, // 布尔值，表示本次调用是否成功
+			"code":              code,
+			config.Server.Trace: t.Tid,
+			"data":              data, // 调用成功（success为true）时，服务端返回的数据。 不允许返回JS中undefine结果，0，false，"" 等
 		},
 	)
 	return
 }
 
 // GetHttpResFailure 封装一个失败的返回值
-func GetHttpResFailure(c *gin.Context, status, code int, msg string) {
-	c.AbortWithStatusJSON(
+func (t *Tracer) GetHttpResFailure(status, code int, msg string) {
+	t.Ctx.AbortWithStatusJSON(
 		status,
 		&gin.H{
-			"success":    false, // 布尔值，表示本次调用是否成功
-			"code":       code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
-			"request_id": requestid.Get(c),
-			"msg":        msg, // 字符串，调用失败（success为false）时，服务端返回的错误信息
+			"success":           false, // 布尔值，表示本次调用是否成功
+			"code":              code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
+			config.Server.Trace: t.Tid,
+			"msg":               msg, // 字符串，调用失败（success为false）时，服务端返回的错误信息
 		},
 	)
 	return
 }
 
 // GetHttpResError 封装一个错误的返回值
-func GetHttpResError(c *gin.Context, status, code int, data any, err error) {
-	c.AbortWithStatusJSON(
+func (t *Tracer) GetHttpResError(status, code int, data any, err error) {
+	t.Ctx.AbortWithStatusJSON(
 		status,
 		&gin.H{
-			"success":    false, // 布尔值，表示本次调用是否成功
-			"code":       code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
-			"request_id": requestid.Get(c),
-			"msg":        getValidMsg(err, data), // 字符串，调用失败（success为false）时，服务端返回的错误信息
+			"success":           false, // 布尔值，表示本次调用是否成功
+			"code":              code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
+			config.Server.Trace: t.Tid,
+			"msg":               getValidMsg(err, data), // 字符串，调用失败（success为false）时，服务端返回的错误信息
 		},
 	)
 	return
 }
 
 // GetHttpResErrorTrans 封装一个错误的返回值,翻译
-func GetHttpResErrorTrans(c *gin.Context, status, code int, err error) {
+func (t *Tracer) GetHttpResErrorTrans(status, code int, err error) {
 	if errors.Is(err, io.EOF) {
-		GetHttpResFailure(c, http.StatusBadRequest, code, "缺少参数")
+		t.GetHttpResFailure(http.StatusBadRequest, code, "缺少参数")
 		return
 	}
 	var errs validator.ValidationErrors
 	if errors.As(err, &errs) {
-		c.AbortWithStatusJSON(
+		t.Ctx.AbortWithStatusJSON(
 			status,
 			&gin.H{
-				"success":    false, // 布尔值，表示本次调用是否成功
-				"code":       code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
-				"request_id": requestid.Get(c),
-				"msg":        removeTopStruct(errs.Translate(trans)), // 字符串，调用失败（success为false）时，服务端返回的错误信息
+				"success":           false, // 布尔值，表示本次调用是否成功
+				"code":              code,  // 字符串，调用失败（success为false）时，服务端返回的错误码
+				config.Server.Trace: t.Tid,
+				"msg":               removeTopStruct(errs.Translate(trans)), // 字符串，调用失败（success为false）时，服务端返回的错误信息
 			},
 		)
 		return
 	}
-	GetHttpResFailure(c, http.StatusBadRequest, code, "服务异常")
+	t.GetHttpResFailure(http.StatusBadRequest, code, "服务异常")
 	return
 }

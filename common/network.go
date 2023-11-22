@@ -1,8 +1,8 @@
 package common
 
 import (
+	"errors"
 	"github.com/valyala/fasthttp"
-	"go.uber.org/zap"
 	"net"
 	"regexp"
 	"strings"
@@ -10,7 +10,7 @@ import (
 )
 
 // CheckNetwork 检查是否有网络
-func CheckNetwork() bool {
+func CheckNetwork() error {
 	var dnsServers = []string{
 		"223.5.5.5",
 		"223.6.6.6",
@@ -22,39 +22,25 @@ func CheckNetwork() bool {
 	for _, dns := range dnsServers {
 		conn, err = net.DialTimeout("udp", net.JoinHostPort(dns, "53"), time.Second*5)
 		if err != nil {
-			ZapLog.Error("无法连接DNS",
-				zap.String("dns", dns),
-				zap.Error(err),
-			)
 			continue
 		}
-		ZapLog.Info("已连接上DNS",
-			zap.String("dns", dns),
-		)
 		break
 	}
 	if conn != nil {
 		defer func(conn net.Conn) {
-			err := conn.Close()
-			if err != nil {
-				ZapLog.Error("关闭DialTimeout失败",
-					zap.Error(err),
-				)
-			}
+			err = conn.Close()
 		}(conn)
-		return true
+		return err
 	}
-	return false
+	return err
 }
 
 // GetLocalIP4 获取本机内网ipv4
-func GetLocalIP4() string {
+func GetLocalIP4() (string, error) {
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
-		ZapLog.Error("获取本地ip失败", zap.Error(err))
-		return ""
+		return "", err
 	}
-
 	for i := 0; i < len(netInterfaces); i++ {
 		if (netInterfaces[i].Flags & net.FlagUp) != 0 {
 			addRs, _ := netInterfaces[i].Addrs()
@@ -64,23 +50,26 @@ func GetLocalIP4() string {
 					if ipNet.IP.To4() != nil {
 						if strings.HasPrefix(ipNet.IP.String(), "172") ||
 							strings.HasPrefix(ipNet.IP.String(), "192") {
-							return ipNet.IP.String()
+							return ipNet.IP.String(), nil
 						}
 					}
 				}
 			}
 		}
 	}
-	return ""
+	return "", errors.New("获取内网ip地址失败")
 }
 
 // GetExternalIP4 获取本机外网ipv4
-func GetExternalIP4() (ip string) {
+func GetExternalIP4() (string, error) {
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req) // 用完需要释放资源
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp) // 用完需要释放资源
 	req.SetTimeout(10 * time.Second)
+	FastHttpClient := &fasthttp.Client{
+		MaxConnsPerHost: 10240,
+	}
 	ipUrls := []string{
 		"https://myip.ipip.net",
 		"http://members.3322.org/dyndns/getip",
@@ -91,25 +80,15 @@ func GetExternalIP4() (ip string) {
 	for _, ipUrl := range ipUrls {
 		req.SetRequestURI(ipUrl)
 		req.Header.SetMethod("GET")
-		if err := FastHttpClient.Do(req, resp); err != nil {
-			ZapLog.Error("获取ip访问异常",
-				zap.String("url", ipUrl),
-				zap.Error(err),
-			)
-		} else {
+		if err := FastHttpClient.Do(req, resp); err == nil {
 			res := resp.String()
-			ip = MatchIp(res)
-			if ip == "" {
-				ZapLog.Error("获取ip访问错误",
-					zap.String("url", ipUrl),
-					zap.String("result", res),
-				)
-			} else {
-				return
+			ip := MatchIp(res)
+			if ip != "" {
+				return ip, nil
 			}
 		}
 	}
-	return
+	return "", errors.New("获取ip失败")
 }
 
 // MatchIp 判断字符串是否是ipv4或ipv6

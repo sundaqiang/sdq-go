@@ -1,9 +1,10 @@
-package common
+package service
 
 import (
 	"bytes"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/sundaqiang/sdq-go/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -37,8 +38,8 @@ func getLogWriter(logger *lumberjack.Logger, stdOut bool) zapcore.WriteSyncer {
 	return zapcore.AddSync(ws)
 }
 
-// GinzapWithConfig returns a gin.HandlerFunc using configs
-func GinzapWithConfig(logger *zap.Logger, conf *ginzap.Config) gin.HandlerFunc {
+// GinZapWithConfig returns a gin.HandlerFunc using configs
+func GinZapWithConfig(logger *zap.Logger, conf *ginzap.Config, trace string) gin.HandlerFunc {
 	skipPaths := make(map[string]bool, len(conf.SkipPaths))
 	for _, path := range conf.SkipPaths {
 		skipPaths[path] = true
@@ -75,14 +76,15 @@ func GinzapWithConfig(logger *zap.Logger, conf *ginzap.Config) gin.HandlerFunc {
 			// body
 			if body != nil {
 				if json.Valid(body) {
-					fields = append(fields, zap.Reflect("body", Json2Map(body)))
+
+					fields = append(fields, zap.Reflect("body", common.Json2Map(body)))
 				} else {
 					fields = append(fields, zap.ByteString("body", body))
 				}
 			}
 			// log request ID
-			if requestID := c.Writer.Header().Get("X-Request-Id"); requestID != "" {
-				fields = append(fields, zap.String("request_id", requestID))
+			if requestID := c.Writer.Header().Get(common.KebabString(trace)); requestID != "" {
+				fields = append(fields, zap.String(trace, requestID))
 			}
 			/*if conf.TimeFormat != "" {
 				fields = append(fields, zap.String("time", end.Format(conf.TimeFormat)))

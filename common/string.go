@@ -1,6 +1,8 @@
 package common
 
 import (
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -10,9 +12,10 @@ import (
 
 // String2Bytes 字符串转字节集
 func String2Bytes(s string) []byte {
-	x := (*[2]uintptr)(unsafe.Pointer(&s))
-	h := [3]uintptr{x[0], x[1], x[1]}
-	return *(*[]byte)(unsafe.Pointer(&h))
+	/*	x := (*[2]uintptr)(unsafe.Pointer(&s))
+		h := [3]uintptr{x[0], x[1], x[1]}
+		return *(*[]byte)(unsafe.Pointer(&h))*/
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 /*
@@ -169,4 +172,14 @@ func CamelString(s string) string {
 		data = append(data, d)
 	}
 	return string(data[:])
+}
+
+// KebabString 蛇形转KebabCase xx_yy to Xx-Yx
+func KebabString(input string) string {
+	// 使用 cases.Title 将字符串转换为标题格式
+	t := cases.Title(language.Und)
+	result := t.String(input)
+	// 使用 strings.Replace 将下划线替换为连字符
+	result = strings.Replace(result, "_", "-", -1)
+	return result
 }

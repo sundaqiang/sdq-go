@@ -3,8 +3,8 @@
 package common
 
 import (
+	"errors"
 	"github.com/beevik/ntp"
-	"go.uber.org/zap"
 	"golang.org/x/sys/windows/registry"
 	"os"
 	"strings"
@@ -120,15 +120,12 @@ func newWindowsProcess(e *ProcessEntry32) *WindowsProcess {
 }
 
 // AllProcesses 获取进程列表
-func AllProcesses() []*WindowsProcess {
+func AllProcesses() ([]*WindowsProcess, error) {
 	handle, _, _ := procCreateToolHelp32Snapshot.Call(
 		0x00000002,
 		0)
 	if handle < 0 {
-		ZapLog.Error("获取进程列表错误",
-			zap.Error(syscall.GetLastError()),
-		)
-		return nil
+		return nil, syscall.GetLastError()
 	}
 	defer procCloseHandle.Call(handle)
 
@@ -136,10 +133,7 @@ func AllProcesses() []*WindowsProcess {
 	entry.Size = uint32(unsafe.Sizeof(entry))
 	ret, _, _ := procProcess32First.Call(handle, uintptr(unsafe.Pointer(&entry)))
 	if ret == 0 {
-		ZapLog.Error("获取进程列表失败",
-			zap.Error(syscall.GetLastError()),
-		)
-		return nil
+		return nil, syscall.GetLastError()
 	}
 
 	results := make([]*WindowsProcess, 0, 50)
@@ -151,40 +145,36 @@ func AllProcesses() []*WindowsProcess {
 			break
 		}
 	}
-
-	return results
+	return results, nil
 }
 
 // FindProcess 根据进程id获取进程信息
-func FindProcess(pid int) *WindowsProcess {
-	ps := AllProcesses()
+func FindProcess(pid int) (*WindowsProcess, error) {
+	ps, err := AllProcesses()
 	if ps == nil {
-		return nil
+		return nil, err
 	}
 	for _, p := range ps {
 		if p.Pid == pid {
-			return p
+			return p, nil
 		}
 	}
-
-	return nil
+	return nil, errors.New("未找到进程信息")
 }
 
 // AddHosts 添加hosts
-func AddHosts(ip string, domain string) {
+func AddHosts(ip string, domain string) error {
 	hostsFilePath := "C:\\Windows\\System32\\drivers\\etc\\hosts"
 	// 读取hosts文件
 	content, err := os.ReadFile(hostsFilePath)
 	if err != nil {
-		ZapLog.Error("无法读取hosts文件",
-			zap.Error(err),
-		)
+		return err
 	}
 
 	// 检查是否已存在条目
 	entry := ip + "\t" + domain
 	if strings.Contains(string(content), entry) {
-		return
+		return errors.New("条目已经存在")
 	}
 
 	// 添加新条目
@@ -193,11 +183,9 @@ func AddHosts(ip string, domain string) {
 	// 写入修改后的内容
 	err = os.WriteFile(hostsFilePath, content, os.ModeAppend)
 	if err != nil {
-		ZapLog.Error("无法写入hosts文件",
-			zap.Error(err),
-		)
+		return err
 	}
-	return
+	return nil
 }
 
 // CheckDefenderApp 检测是否安装了未兼容的软件
@@ -220,24 +208,20 @@ func CheckDefenderApp(products, defender *[]string) string {
 }
 
 // GetAllProduct 获取全部已安装的软件
-func GetAllProduct() []string {
+func GetAllProduct() ([]string, error) {
 	softWares32, err := getProduct(registry.WOW64_32KEY)
 	if err != nil {
-		ZapLog.Error("读取已安装的32位软件失败",
-			zap.Error(err),
-		)
+		return nil, err
 	}
 	softWares64, err := getProduct(registry.WOW64_64KEY)
 	if err != nil {
-		ZapLog.Error("读取已安装的64位软件失败",
-			zap.Error(err),
-		)
+		return nil, err
 	}
 	var resultStrings []string
 	UniqueAndMerge(softWares32, softWares64, &resultStrings, func(s string) string {
 		return s
 	})
-	return resultStrings
+	return resultStrings, nil
 }
 
 // PreventSleepWindows 阻止休眠
@@ -251,17 +235,14 @@ func AllowSleepWindows() {
 }
 
 // SetWindowsTime 将时间设置到系统时间
-func SetWindowsTime(ntpAddr string) bool {
+func SetWindowsTime(ntpAddr string) error {
 	if ntpAddr == "" {
 		ntpAddr = "ntp.aliyun.com"
 	}
 	// 获取网络时间
 	ntpTime, err := ntp.Time(ntpAddr)
 	if err != nil {
-		ZapLog.Error("读取网络时间错误",
-			zap.Error(err),
-		)
-		return false
+		return err
 	}
 	ntpTime = ntpTime.UTC()
 	// 构建windowsTime结构
@@ -280,13 +261,7 @@ func SetWindowsTime(ntpAddr string) bool {
 		uintptr(unsafe.Pointer(&st)),
 	)
 	if ret == 0 {
-		ZapLog.Error("设置系统时间失败",
-			zap.Error(err),
-			zap.Time("network_time", ntpTime),
-		)
+		return err
 	}
-	ZapLog.Info("设置系统时间成功",
-		zap.Time("network_time", ntpTime),
-	)
-	return true
+	return nil
 }
