@@ -6,6 +6,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/sony/sonyflake"
 	"github.com/sundaqiang/sdq-go/common"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -117,15 +118,16 @@ func InitConfig(filePath, prefix string, conf any) error {
 	if config.Cache != nil &&
 		config.Cache.BucketCnt > 0 &&
 		config.Cache.CapOne > 0 &&
-		config.Cache.CapTwo > 0 &&
-		config.Cache.Rdb > 0 &&
-		config.Cache.Size > 0 &&
 		config.Cache.Expiration > 0 {
+		var rdb *redis.Client
+		if config.Cache.Rdb > 0 && len(Rdb) > 0 && len(Rdb) >= config.Cache.Rdb {
+			rdb = Rdb[config.Cache.Rdb-1]
+		}
 		InitLocalCache(
 			config.Cache.BucketCnt,
 			config.Cache.CapOne,
 			config.Cache.CapTwo,
-			Rdb[config.Cache.Rdb],
+			rdb,
 			config.Cache.Size,
 			time.Duration(config.Cache.Expiration)*time.Second)
 	}
