@@ -69,6 +69,7 @@ func initDB(info *Gorm) {
 	}
 	Db, err = gorm.Open(driver, &gorm.Config{
 		Logger:                 newLogger,
+		QueryFields:            true,
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
 		NamingStrategy: schema.NamingStrategy{
