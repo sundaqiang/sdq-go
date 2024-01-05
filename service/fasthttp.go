@@ -2,7 +2,6 @@ package service
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"github.com/bytedance/sonic"
 	"github.com/sundaqiang/sdq-go/common"
@@ -16,7 +15,6 @@ import (
 )
 
 type FastReqArg struct {
-	Ctx          context.Context
 	Url          string
 	Path         string
 	Params       *fasthttp.Args

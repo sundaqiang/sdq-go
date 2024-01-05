@@ -49,10 +49,10 @@ func GetTracer(c *gin.Context) *Tracer {
 func (t *Tracer) BindJson(code int, body any) bool {
 	if err := t.Ctx.ShouldBindJSON(body); err != nil {
 		if config.Server.Trans {
-			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
+			t.GetHttpResErrorTrans(http.StatusOK, code, err)
 			return false
 		}
-		t.GetHttpResError(http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusOK, code, body, err)
 		return false
 	}
 	return true
@@ -62,10 +62,10 @@ func (t *Tracer) BindJson(code int, body any) bool {
 func (t *Tracer) BindForm(code int, body any) bool {
 	if err := t.Ctx.ShouldBindWith(body, binding.Form); err != nil {
 		if config.Server.Trans {
-			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
+			t.GetHttpResErrorTrans(http.StatusOK, code, err)
 			return false
 		}
-		t.GetHttpResError(http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusOK, code, body, err)
 		return false
 	}
 	return true
@@ -75,10 +75,10 @@ func (t *Tracer) BindForm(code int, body any) bool {
 func (t *Tracer) BindQuery(code int, body any) bool {
 	if err := t.Ctx.ShouldBindQuery(body); err != nil {
 		if config.Server.Trans {
-			t.GetHttpResErrorTrans(http.StatusBadRequest, code, err)
+			t.GetHttpResErrorTrans(http.StatusOK, code, err)
 			return false
 		}
-		t.GetHttpResError(http.StatusBadRequest, code, body, err)
+		t.GetHttpResError(http.StatusOK, code, body, err)
 		return false
 	}
 	return true
@@ -129,7 +129,7 @@ func (t *Tracer) GetHttpResError(status, code int, data any, err error) {
 // GetHttpResErrorTrans 封装一个错误的返回值,翻译
 func (t *Tracer) GetHttpResErrorTrans(status, code int, err error) {
 	if errors.Is(err, io.EOF) {
-		t.GetHttpResFailure(http.StatusBadRequest, code, "缺少参数")
+		t.GetHttpResFailure(http.StatusOK, code, "缺少参数")
 		return
 	}
 	var errs validator.ValidationErrors
@@ -145,6 +145,6 @@ func (t *Tracer) GetHttpResErrorTrans(status, code int, err error) {
 		)
 		return
 	}
-	t.GetHttpResFailure(http.StatusBadRequest, code, "服务异常")
+	t.GetHttpResFailure(http.StatusOK, code, "服务异常")
 	return
 }
