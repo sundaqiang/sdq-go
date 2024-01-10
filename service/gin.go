@@ -99,7 +99,7 @@ func (t *Tracer) GetHttpResSuccess(status, code int, data any) {
 }
 
 // GetHttpResFailure 封装一个失败的返回值
-func (t *Tracer) GetHttpResFailure(status, code int, msg string) {
+func (t *Tracer) GetHttpResFailure(status, code int, msg any) {
 	t.Ctx.AbortWithStatusJSON(
 		status,
 		&gin.H{
