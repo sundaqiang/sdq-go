@@ -18,7 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Tracer struct {
+type GinTracer struct {
 	Cache *ecache.Cache
 	Ctx   *gin.Context
 	Cron  *gocron.Scheduler
@@ -30,9 +30,9 @@ type Tracer struct {
 	Tid   string
 }
 
-// GetTracer 获取上下文实例
-func GetTracer(c *gin.Context) *Tracer {
-	return &Tracer{
+// GetGinTracer 获取上下文实例
+func GetGinTracer(c *gin.Context) *GinTracer {
+	return &GinTracer{
 		Cache: LRUCache,
 		Cron:  GoCron,
 		Ctx:   c,
@@ -46,7 +46,7 @@ func GetTracer(c *gin.Context) *Tracer {
 }
 
 // BindJson 绑定数据
-func (t *Tracer) BindJson(code int, body any) bool {
+func (t *GinTracer) BindJson(code int, body any) bool {
 	if err := t.Ctx.ShouldBindJSON(body); err != nil {
 		if config.Server.Trans {
 			t.GetHttpResErrorTrans(http.StatusOK, code, err)
@@ -59,7 +59,7 @@ func (t *Tracer) BindJson(code int, body any) bool {
 }
 
 // BindForm 绑定数据
-func (t *Tracer) BindForm(code int, body any) bool {
+func (t *GinTracer) BindForm(code int, body any) bool {
 	if err := t.Ctx.ShouldBindWith(body, binding.Form); err != nil {
 		if config.Server.Trans {
 			t.GetHttpResErrorTrans(http.StatusOK, code, err)
@@ -72,7 +72,7 @@ func (t *Tracer) BindForm(code int, body any) bool {
 }
 
 // BindQuery 绑定数据
-func (t *Tracer) BindQuery(code int, body any) bool {
+func (t *GinTracer) BindQuery(code int, body any) bool {
 	if err := t.Ctx.ShouldBindQuery(body); err != nil {
 		if config.Server.Trans {
 			t.GetHttpResErrorTrans(http.StatusOK, code, err)
@@ -85,7 +85,7 @@ func (t *Tracer) BindQuery(code int, body any) bool {
 }
 
 // GetHttpResSuccess 封装一个正确的返回值
-func (t *Tracer) GetHttpResSuccess(status, code int, data any) {
+func (t *GinTracer) GetHttpResSuccess(status, code int, data any) {
 	t.Ctx.JSON(
 		status,
 		&gin.H{
@@ -99,7 +99,7 @@ func (t *Tracer) GetHttpResSuccess(status, code int, data any) {
 }
 
 // GetHttpResFailure 封装一个失败的返回值
-func (t *Tracer) GetHttpResFailure(status, code int, msg any) {
+func (t *GinTracer) GetHttpResFailure(status, code int, msg any) {
 	t.Ctx.AbortWithStatusJSON(
 		status,
 		&gin.H{
@@ -113,7 +113,7 @@ func (t *Tracer) GetHttpResFailure(status, code int, msg any) {
 }
 
 // GetHttpResError 封装一个错误的返回值
-func (t *Tracer) GetHttpResError(status, code int, data any, err error) {
+func (t *GinTracer) GetHttpResError(status, code int, data any, err error) {
 	t.Ctx.AbortWithStatusJSON(
 		status,
 		&gin.H{
@@ -127,7 +127,7 @@ func (t *Tracer) GetHttpResError(status, code int, data any, err error) {
 }
 
 // GetHttpResErrorTrans 封装一个错误的返回值,翻译
-func (t *Tracer) GetHttpResErrorTrans(status, code int, err error) {
+func (t *GinTracer) GetHttpResErrorTrans(status, code int, err error) {
 	if errors.Is(err, io.EOF) {
 		t.GetHttpResFailure(http.StatusOK, code, "缺少参数")
 		return

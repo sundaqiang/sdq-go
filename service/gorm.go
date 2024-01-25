@@ -56,6 +56,19 @@ func initDB(info *Gorm) {
 					),
 				}
 			}
+			// 获取键值
+			value := ctx.Value(config.Server.Trace)
+			// 检查值是否存在
+			if value != nil {
+				return []zapcore.Field{
+					zap.String(
+						config.Server.Trace,
+						c.Writer.Header().Get(
+							common.KebabString(config.Server.Trace),
+						),
+					),
+				}
+			}
 			return []zapcore.Field{}
 		}
 	}

@@ -45,6 +45,25 @@ func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 				)
 			}
 		}
+		// 获取键值
+		value := ctx.Value(config.Server.Trace)
+		// 检查值是否存在
+		if value != nil {
+			l := ZapLog.With(zap.String(config.Server.Trace, value.(string)))
+			if cmd.Err() != nil {
+				l.Error(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.Error(cmd.Err()),
+				)
+			} else {
+				l.Debug(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.String("cmd", cmd.String()),
+				)
+			}
+		}
 		next(ctx, cmd)
 		return nil
 	}
@@ -59,14 +78,35 @@ func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Process
 				if cmd.Err() != nil {
 					l.Error(
 						"redis_trace",
-						zap.Error(cmd.Err()),
 						zap.Any("args", cmd.Args()),
+						zap.Error(cmd.Err()),
 					)
 				} else {
 					l.Debug(
 						"redis_trace",
-						zap.String("cmd", cmd.String()),
 						zap.Any("args", cmd.Args()),
+						zap.String("cmd", cmd.String()),
+					)
+				}
+			}
+		}
+		// 获取键值
+		value := ctx.Value(config.Server.Trace)
+		// 检查值是否存在
+		if value != nil {
+			l := ZapLog.With(zap.String(config.Server.Trace, value.(string)))
+			for _, cmd := range cmds {
+				if cmd.Err() != nil {
+					l.Error(
+						"redis_trace",
+						zap.Any("args", cmd.Args()),
+						zap.Error(cmd.Err()),
+					)
+				} else {
+					l.Debug(
+						"redis_trace",
+						zap.Any("args", cmd.Args()),
+						zap.String("cmd", cmd.String()),
 					)
 				}
 			}

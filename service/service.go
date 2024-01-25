@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"github.com/bytedance/sonic"
 	"github.com/gin-contrib/pprof"
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/google/uuid"
 	"github.com/orca-zhang/ecache"
 	"github.com/orca-zhang/ecache/dist"
 	"github.com/redis/go-redis/v9"
@@ -37,6 +39,35 @@ var (
 	ZapLog         *zap.Logger
 	LRUCache       *ecache.Cache
 )
+
+type GeneralTracer struct {
+	Cache *ecache.Cache
+	Ctx   *context.Context
+	Cron  *gocron.Scheduler
+	Db    *gorm.DB
+	Http  *fasthttp.Client
+	Log   *zap.Logger
+	Rdb   []*redis.Client
+	Sony  *sonyflake.Sonyflake
+	Tid   string
+}
+
+// GetGeneralTracer 获取上下文实例
+func GetGeneralTracer() *GeneralTracer {
+	tid := uuid.New().String()
+	c := context.WithValue(context.Background(), config.Server.Trace, tid)
+	return &GeneralTracer{
+		Cache: LRUCache,
+		Cron:  GoCron,
+		Ctx:   &c,
+		Db:    Db.WithContext(c),
+		Http:  FastHttpClient,
+		Log:   ZapLog.With(zap.String(config.Server.Trace, tid)),
+		Rdb:   Rdb,
+		Sony:  SonyFlake,
+		Tid:   tid,
+	}
+}
 
 // InitGORM 初始化GORM
 func InitGORM(info *Gorm) {
