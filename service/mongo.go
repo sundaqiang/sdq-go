@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.uber.org/zap"
 )
 
 type Mongo struct {
@@ -13,10 +14,8 @@ type Mongo struct {
 	Password string `toml:"password"`
 }
 
-var MonC *mongo.Client
-
 // InitMongo 初始化
-func InitMongo(info *Mongo) error {
+func InitMongo(info *Mongo) {
 	var err error
 	ctx := context.Background()
 
@@ -40,11 +39,16 @@ func InitMongo(info *Mongo) error {
 			Password: info.Password,
 		})
 
-	MonC, err = mongo.Connect(ctx, opts)
+	Mdb, err = mongo.Connect(ctx, opts)
 	if err != nil {
-		return err
+		ZapLog.Fatal("mongo连接失败", zap.Error(err))
+		return
 	}
 
 	// 是否连接检测
-	return MonC.Ping(ctx, readpref.Primary())
+	if err := Mdb.Ping(ctx, readpref.Primary()); err != nil {
+		ZapLog.Fatal("mongo连接错误", zap.Error(err))
+	} else {
+		ZapLog.Info("mongo连接成功")
+	}
 }

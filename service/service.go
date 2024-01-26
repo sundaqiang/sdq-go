@@ -18,6 +18,7 @@ import (
 	"github.com/sony/sonyflake"
 	"github.com/sundaqiang/sdq-go/common"
 	"github.com/valyala/fasthttp"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -40,6 +41,7 @@ var (
 	ZapLog         *zap.Logger
 	LRUCache       *ecache.Cache
 	Ipdb           *ipdb.City
+	Mdb            *mongo.Client
 )
 
 type GeneralTracer struct {
