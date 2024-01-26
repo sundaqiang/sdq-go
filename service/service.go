@@ -11,6 +11,7 @@ import (
 	"github.com/go-co-op/gocron"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/google/uuid"
+	"github.com/ipipdotnet/ipdb-go"
 	"github.com/orca-zhang/ecache"
 	"github.com/orca-zhang/ecache/dist"
 	"github.com/redis/go-redis/v9"
@@ -38,6 +39,7 @@ var (
 	SonyFlake      *sonyflake.Sonyflake
 	ZapLog         *zap.Logger
 	LRUCache       *ecache.Cache
+	Ipdb           *ipdb.City
 )
 
 type GeneralTracer struct {

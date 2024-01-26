@@ -235,7 +235,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 	return false
 }
 
-func (t *Tracer) FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
+func (t *GinTracer) FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req) // 用完需要释放资源
 	resp := fasthttp.AcquireResponse()

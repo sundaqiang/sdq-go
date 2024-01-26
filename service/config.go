@@ -25,6 +25,7 @@ type Config struct {
 type Database struct {
 	Gorm  Gorm  `toml:"gorm"`
 	Redis Redis `toml:"redis"`
+	Mongo Mongo `toml:"mongo"`
 }
 
 type Server struct {
@@ -61,6 +62,8 @@ type Other struct {
 	Cron      bool   `toml:"cron"`
 	CronAsync bool   `toml:"cron-async"`
 	SonyFlake int64  `toml:"sony-flake"`
+	IpdbPath  string `toml:"ipdb-path"`
+	IpdbCorn  int64  `toml:"ipdb-corn"`
 }
 
 var k = koanf.New(".")
@@ -100,6 +103,9 @@ func InitConfig(filePath, prefix string, conf any) error {
 		if config.Database.Redis.Addr != "" {
 			InitRdb(&config.Database.Redis)
 		}
+		if config.Database.Mongo.Url != "" {
+			InitMongo(&config.Database.Mongo)
+		}
 	}
 	if config.Other != nil {
 		if config.Other.FastHttp {
@@ -113,7 +119,9 @@ func InitConfig(filePath, prefix string, conf any) error {
 				StartTime: common.Timestamp2Time(config.Other.SonyFlake, true),
 			})
 		}
-
+		if config.Other.IpdbPath != "" && config.Other.IpdbCorn > 0 {
+			InitIpdb(config.Other.IpdbPath, config.Other.IpdbCorn)
+		}
 	}
 	if config.Cache != nil &&
 		config.Cache.BucketCnt > 0 &&
