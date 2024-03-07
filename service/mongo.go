@@ -18,7 +18,6 @@ type Mongo struct {
 func InitMongo(info *Mongo) {
 	var err error
 	ctx := context.Background()
-
 	// 连接实例
 	opts := options.Client().
 		ApplyURI(info.Url).
@@ -46,7 +45,7 @@ func InitMongo(info *Mongo) {
 	}
 
 	// 是否连接检测
-	if err := Mdb.Ping(ctx, readpref.Primary()); err != nil {
+	if err = Mdb.Ping(ctx, readpref.Primary()); err != nil {
 		ZapLog.Fatal("mongo连接错误", zap.Error(err))
 	} else {
 		ZapLog.Info("mongo连接成功")

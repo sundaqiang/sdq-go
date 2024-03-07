@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -143,6 +144,10 @@ func (t *GinTracer) GetHttpResErrorTrans(status, code int, err error) {
 				"msg":               removeTopStruct(errs.Translate(trans)), // 字符串，调用失败（success为false）时，服务端返回的错误信息
 			},
 		)
+		return
+	}
+	if strings.Contains(err.Error(), "cannot unmarshal") {
+		t.GetHttpResFailure(http.StatusOK, code, "参数异常")
 		return
 	}
 	t.GetHttpResFailure(http.StatusOK, code, "服务异常")
