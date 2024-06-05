@@ -2,8 +2,11 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bytedance/sonic"
 	"reflect"
+	"sort"
+	"strings"
 )
 
 // FieldInfo 存储struct中每个字段的信息
@@ -157,4 +160,28 @@ func StructAssign(target, source interface{}, tag string) {
 			}
 		}
 	}
+}
+
+// GenerateSignString 生成签名
+func GenerateSignString(input any, tag, sep, kvSep string, ignores []string, isSort bool) string {
+	t := reflect.TypeOf(input).Elem()
+	v := reflect.ValueOf(input).Elem()
+	var fields []string
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get(tag)
+		// 使用逗号分割标签，提取字段名
+		parts := strings.Split(tag, ",")
+		fieldName := parts[0]
+		value := v.Field(i).Interface()
+		// 忽略字段
+		if !StringInSlice(ignores, fieldName) {
+			fieldValue := fmt.Sprintf("%v", value)
+			fields = append(fields, fieldName+kvSep+fieldValue)
+		}
+	}
+	if isSort {
+		sort.Strings(fields)
+	}
+	return strings.Join(fields, sep)
 }
