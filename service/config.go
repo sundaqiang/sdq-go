@@ -23,9 +23,9 @@ type Config struct {
 }
 
 type Database struct {
-	Gorm  Gorm  `toml:"gorm"`
-	Redis Redis `toml:"redis"`
-	Mongo Mongo `toml:"mongo"`
+	Gorm  Gorm    `toml:"gorm"`
+	Redis []Redis `toml:"redis"`
+	Mongo Mongo   `toml:"mongo"`
 }
 
 type Server struct {
@@ -100,7 +100,7 @@ func InitConfig(filePath, prefix string, conf any) error {
 		if config.Database.Gorm.Type != "" {
 			InitGORM(&config.Database.Gorm)
 		}
-		if config.Database.Redis.Addr != "" {
+		if len(config.Database.Redis) > 0 {
 			InitRdb(&config.Database.Redis)
 		}
 		if config.Database.Mongo.Url != "" {

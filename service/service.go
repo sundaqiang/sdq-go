@@ -81,9 +81,13 @@ func InitGORM(info *Gorm) {
 }
 
 // InitRdb 初始化Redis
-func InitRdb(info *Redis) {
+func InitRdb(info *[]Redis) {
 	if info != nil {
-		info.initRedis()
+		for _, v := range *info {
+			if v.Network != "" && v.Addr != "" {
+				v.initRedis()
+			}
+		}
 	}
 }
 
