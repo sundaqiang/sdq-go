@@ -142,7 +142,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 
 	// 访问接口
 	if err := FastHttpClient.Do(req, resp); err != nil {
-		ZapLog.Error("FastResponse接口访问错误",
+		ZapLog.Warn("FastResponse接口访问错误",
 			zap.String("url", fullUrl),
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
@@ -160,7 +160,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 		c := fasthttp.AcquireCookie()
 		err := c.ParseBytes(value)
 		if err != nil {
-			ZapLog.Error("FastResponse获取cookie失败", zap.Error(err))
+			ZapLog.Warn("FastResponse获取cookie失败", zap.Error(err))
 			return
 		}
 		cName := common.Bytes2String(c.Key())
@@ -185,7 +185,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 	resArg.StatusCode = resp.StatusCode()
 	resArg.Header = resp.Header.String()
 	if resArg.StatusCode != 200 {
-		ZapLog.Error("FastResponse接口访问失败",
+		ZapLog.Warn("FastResponse接口访问失败",
 			zap.String("url", fullUrl),
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
@@ -224,7 +224,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 		)
 		return true
 	}
-	ZapLog.Error("FastResponse接口访问异常",
+	ZapLog.Warn("FastResponse接口访问异常",
 		zap.String("url", fullUrl),
 		zap.String("method", reqArg.Method),
 		zap.String("content_type", contentType),
