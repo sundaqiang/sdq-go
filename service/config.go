@@ -123,7 +123,7 @@ func InitConfig(filePath, prefix string, conf any) error {
 		if config.Other.IpdbPath != "" && config.Other.IpdbCorn > 0 {
 			InitIpdb(config.Other.IpdbPath, config.Other.IpdbCorn)
 		}
-		if config.Other.Limiter > 0 && len(Rdb) > 0 && len(Rdb) >= config.Other.Limiter {
+		if config.Other.Limiter > -1 && len(Rdb) > 0 && len(Rdb) > config.Other.Limiter {
 			InitLimit(config.Other.Limiter)
 		}
 	}
@@ -132,8 +132,8 @@ func InitConfig(filePath, prefix string, conf any) error {
 		config.Cache.CapOne > 0 &&
 		config.Cache.Expiration > 0 {
 		var rdb *redis.Client
-		if config.Cache.Rdb > 0 && len(Rdb) > 0 && len(Rdb) >= config.Cache.Rdb {
-			rdb = Rdb[config.Cache.Rdb-1]
+		if config.Cache.Rdb > -1 && len(Rdb) > 0 && len(Rdb) > config.Cache.Rdb {
+			rdb = Rdb[config.Cache.Rdb]
 		}
 		InitLocalCache(
 			config.Cache.BucketCnt,
