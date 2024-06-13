@@ -64,6 +64,7 @@ type Other struct {
 	SonyFlake int64  `toml:"sony-flake"`
 	IpdbPath  string `toml:"ipdb-path"`
 	IpdbCorn  int64  `toml:"ipdb-corn"`
+	Limiter   int    `toml:"limiter"`
 }
 
 var k = koanf.New(".")
@@ -121,6 +122,9 @@ func InitConfig(filePath, prefix string, conf any) error {
 		}
 		if config.Other.IpdbPath != "" && config.Other.IpdbCorn > 0 {
 			InitIpdb(config.Other.IpdbPath, config.Other.IpdbCorn)
+		}
+		if config.Other.Limiter > 0 && len(Rdb) > 0 && len(Rdb) >= config.Other.Limiter {
+			InitLimit(config.Other.Limiter)
 		}
 	}
 	if config.Cache != nil &&

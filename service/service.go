@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-redis/redis_rate/v10"
 	"github.com/google/uuid"
 	"github.com/ipipdotnet/ipdb-go"
 	"github.com/orca-zhang/ecache"
@@ -42,6 +43,7 @@ var (
 	LRUCache       *ecache.Cache
 	Ipdb           *ipdb.City
 	Mdb            *mongo.Client
+	Limiter        *redis_rate.Limiter
 )
 
 type GeneralTracer struct {
