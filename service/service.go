@@ -8,7 +8,7 @@ import (
 	"github.com/gin-contrib/requestid"
 	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-redis/redis_rate/v10"
 	"github.com/google/uuid"
@@ -34,7 +34,7 @@ var (
 	json           = sonic.ConfigFastest
 	trans          ut.Translator
 	ValidatorRegs  *ValidatorReg
-	GoCron         *gocron.Scheduler
+	GoCron         gocron.Scheduler
 	Db             *gorm.DB
 	Rdb            []*redis.Client
 	FastHttpClient *fasthttp.Client
@@ -49,7 +49,7 @@ var (
 type GeneralTracer struct {
 	Cache *ecache.Cache
 	Ctx   *context.Context
-	Cron  *gocron.Scheduler
+	Cron  gocron.Scheduler
 	Db    *gorm.DB
 	Http  *fasthttp.Client
 	Log   *zap.Logger
@@ -95,14 +95,23 @@ func InitRdb(info *[]Redis) {
 
 // InitGoCron 初始化GoCron
 func InitGoCron(cronAsync bool) {
+	var err error
 	t, timeLocationErr := time.LoadLocation("Asia/Shanghai")
 	if timeLocationErr != nil {
 		t = time.FixedZone("CST", 8*3600)
 	}
-	GoCron = gocron.NewScheduler(t)
-	GoCron.SingletonModeAll()
+	GoCron, err = gocron.NewScheduler(gocron.WithLocation(t), gocron.WithLimitConcurrentJobs(
+		1,
+		gocron.LimitModeReschedule,
+	))
+	if err != nil {
+		ZapLog.Error("GoCron初始化失败",
+			zap.Error(err),
+		)
+		return
+	}
 	if cronAsync {
-		GoCron.StartAsync()
+		GoCron.Start()
 	}
 }
 

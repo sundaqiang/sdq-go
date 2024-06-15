@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"github.com/go-redis/redis_rate/v10"
 	"go.uber.org/zap"
@@ -15,4 +16,10 @@ func InitLimit(index int) {
 		return
 	}
 	Limiter = redis_rate.NewLimiter(Rdb[index])
+	err := Limiter.Reset(context.Background(), "")
+	if err != nil {
+		ZapLog.Fatal("limit初始化错误", zap.Error(errors.New("ping失败")))
+		return
+	}
+	ZapLog.Info("limit初始化成功")
 }

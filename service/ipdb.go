@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/go-co-op/gocron/v2"
 	"github.com/ipipdotnet/ipdb-go"
 	"github.com/sundaqiang/sdq-go/common"
 	"github.com/valyala/fasthttp"
@@ -8,15 +9,24 @@ import (
 	"time"
 )
 
-func InitIpdb(path string, corn int64) bool {
+func InitIpdb(path string, cron int64) bool {
 	var err error
 	Ipdb, err = ipdb.NewCity(path)
 	if err != nil {
 		return false
 	}
-	if corn > 0 && GoCron != nil {
-		_, err = GoCron.Every(corn).Hour().StartAt(time.Unix(time.Now().Unix()+8, 0)).
-			Tag("定时更新ipdb").Do(UpdateIpdb, path)
+	if cron > 0 && GoCron != nil {
+		_, err = GoCron.NewJob(
+			gocron.DurationJob(
+				time.Duration(cron)*time.Hour,
+			),
+			gocron.NewTask(
+				UpdateIpdb,
+				path,
+			),
+			gocron.WithStartAt(gocron.WithStartDateTime(time.Unix(time.Now().Unix()+8, 0))),
+			gocron.WithTags("定时更新ipdb"),
+		)
 		if err != nil {
 			return false
 		}

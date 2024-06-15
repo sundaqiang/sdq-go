@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/orca-zhang/ecache"
 	"github.com/redis/go-redis/v9"
@@ -22,7 +22,7 @@ import (
 type GinTracer struct {
 	Cache *ecache.Cache
 	Ctx   *gin.Context
-	Cron  *gocron.Scheduler
+	Cron  gocron.Scheduler
 	Db    *gorm.DB
 	Http  *fasthttp.Client
 	Log   *zap.Logger
