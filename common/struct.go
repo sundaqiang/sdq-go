@@ -169,7 +169,7 @@ func GenerateSignString(input any, tag, sep, kvSep string, ignores []string, isS
 	var fields []string
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		tag := field.Tag.Get(tag)
+		tag = field.Tag.Get(tag)
 		// 使用逗号分割标签，提取字段名
 		parts := strings.Split(tag, ",")
 		fieldName := parts[0]

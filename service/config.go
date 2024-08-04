@@ -70,17 +70,21 @@ type Other struct {
 var k = koanf.New(".")
 
 func InitConfig(filePath, prefix string, conf any) error {
-	if err := k.Load(file.Provider(filePath), toml.Parser()); err != nil {
-		return err
-	}
-	if err := k.Load(env.ProviderWithValue(prefix, ".", func(s string, v string) (string, interface{}) {
-		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, prefix)), "_", ".", -1)
-		if strings.Contains(v, " ") {
-			return key, strings.Split(v, " ")
+	if filePath != "" {
+		if err := k.Load(file.Provider(filePath), toml.Parser()); err != nil {
+			return err
 		}
-		return key, v
-	}), nil); err != nil {
-		return err
+	}
+	if prefix != "" {
+		if err := k.Load(env.ProviderWithValue(prefix, ".", func(s string, v string) (string, interface{}) {
+			key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, prefix)), "_", ".", -1)
+			if strings.Contains(v, " ") {
+				return key, strings.Split(v, " ")
+			}
+			return key, v
+		}), nil); err != nil {
+			return err
+		}
 	}
 	err := k.UnmarshalWithConf("", conf, koanf.UnmarshalConf{Tag: "toml"})
 	if err != nil {
