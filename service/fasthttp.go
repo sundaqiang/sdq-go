@@ -147,7 +147,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
 			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
+			zap.ByteString("body", reqArg.Body.QueryString()),
 			zap.Reflect("body_json", reqArg.BodyJson),
 			zap.Error(err),
 		)
@@ -190,7 +190,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
 			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
+			zap.ByteString("body", reqArg.Body.QueryString()),
 			zap.Reflect("body_json", reqArg.BodyJson),
 		)
 		return false
@@ -205,7 +205,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 				zap.String("method", reqArg.Method),
 				zap.String("content_type", contentType),
 				zap.String("user_agent", userAgent),
-				zap.Reflect("body", reqArg.Body),
+				zap.ByteString("body", reqArg.Body.QueryString()),
 				zap.Reflect("body_json", reqArg.BodyJson),
 				zap.Reflect("res", resArg.BodyJson),
 			)
@@ -218,7 +218,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
 			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
+			zap.ByteString("body", reqArg.Body.QueryString()),
 			zap.Reflect("body_json", reqArg.BodyJson),
 			zap.ByteString("res", resArg.Body),
 		)
@@ -229,7 +229,7 @@ func FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 		zap.String("method", reqArg.Method),
 		zap.String("content_type", contentType),
 		zap.String("user_agent", userAgent),
-		zap.Reflect("body", reqArg.Body),
+		zap.ByteString("body", reqArg.Body.QueryString()),
 		zap.Reflect("body_json", reqArg.BodyJson),
 	)
 	return false
