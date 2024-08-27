@@ -15,8 +15,12 @@ func InitLimit(index int) {
 		ZapLog.Fatal("limit初始化失败", zap.Error(errors.New("索引超出Rdb")))
 		return
 	}
+
+	ctx := context.Background()
+	_ = Rdb[index].FlushDB(ctx).Err()
+
 	Limiter = redis_rate.NewLimiter(Rdb[index])
-	err := Limiter.Reset(context.Background(), "")
+	err := Limiter.Reset(ctx, "")
 	if err != nil {
 		ZapLog.Fatal("limit初始化错误", zap.Error(errors.New("ping失败")))
 		return
