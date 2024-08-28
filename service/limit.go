@@ -17,8 +17,6 @@ func InitLimit(index int) {
 	}
 
 	ctx := context.Background()
-	_ = Rdb[index].FlushDB(ctx).Err()
-
 	Limiter = redis_rate.NewLimiter(Rdb[index])
 	err := Limiter.Reset(ctx, "")
 	if err != nil {
