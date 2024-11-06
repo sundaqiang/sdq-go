@@ -10,6 +10,18 @@ import (
 	"unsafe"
 )
 
+type CharSet struct {
+	kind    int
+	charset string
+}
+
+// 预定义的字符集
+var charSets = []CharSet{
+	{1, "0123456789"},
+	{2, "abcdefghijklmnopqrstuvwxyz"},
+	{4, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+}
+
 // String2Bytes 字符串转字节集
 func String2Bytes(s string) []byte {
 	/*	x := (*[2]uintptr)(unsafe.Pointer(&s))
@@ -26,31 +38,26 @@ CreateRandomStr 生成随机字符串
 	customCharset:自定义字符集
 */
 func CreateRandomStr(length, kind int, customCharset string) string {
-	// 定义包含英文字母和数字的字符集
-	charset := ""
-	if kind < 0 || kind > 7 {
-		return ""
-	}
-	if kind&4 != 0 {
-		charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	}
-	if kind&2 != 0 {
-		charset += "abcdefghijklmnopqrstuvwxyz"
-	}
-	if kind&1 != 0 {
-		charset += "0123456789"
-	}
+	var charset string
+
 	if customCharset != "" {
 		charset = customCharset
+	} else {
+		for _, cs := range charSets {
+			if kind&cs.kind != 0 {
+				charset += cs.charset
+			}
+		}
 	}
 
-	// 设置随机种子
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	if charset == "" {
+		return ""
+	}
 
-	// 生成随机字符串
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randomString := make([]byte, length)
-	for i := 0; i < length; i++ {
-		randomString[i] = charset[rand.Intn(len(charset))]
+	for i := range randomString {
+		randomString[i] = charset[r.Intn(len(charset))]
 	}
 
 	return Bytes2String(randomString)

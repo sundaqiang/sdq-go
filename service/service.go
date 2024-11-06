@@ -120,7 +120,7 @@ InitGin 初始化Gin
 编译需要加tags
 -tags "sonic avx linux amd64"
 */
-func InitGin(router func(r *gin.Engine)) {
+func InitGin(router func(r *gin.Engine) []string) {
 	if config.Server.Host != "" {
 		if config.Server.Host = common.MatchIp(config.Server.Host); config.Server.Host == "" {
 			ZapLog.Error("Gin初始化失败",
@@ -153,15 +153,7 @@ func InitGin(router func(r *gin.Engine)) {
 	if gin.Mode() != gin.ReleaseMode {
 		pprof.Register(r, "dev/pprof")
 	}
-	// 将gin的日志改为zap
-	r.Use(GinZapWithConfig(ZapLog,
-		&ginZap.Config{
-			UTC:        false,
-			TimeFormat: time.RFC3339,
-		},
-		config.Server.Trace,
-	))
-	r.Use(ginZap.RecoveryWithZap(ZapLog, true))
+
 	// 加载路由
 	if router == nil {
 		ZapLog.Error("Gin初始化失败",
@@ -169,7 +161,19 @@ func InitGin(router func(r *gin.Engine)) {
 		)
 		return
 	}
-	router(r)
+	skipPaths := router(r)
+
+	// 将gin的日志改为zap
+	r.Use(GinZapWithConfig(ZapLog,
+		&ginZap.Config{
+			UTC:        false,
+			TimeFormat: time.RFC3339,
+			SkipPaths:  skipPaths,
+		},
+		config.Server.Trace,
+	))
+	r.Use(ginZap.RecoveryWithZap(ZapLog, true))
+
 	err := r.Run(config.Server.Host + ":" + strconv.Itoa(config.Server.Port))
 	if err != nil {
 		ZapLog.Error("Gin初始化失败",
