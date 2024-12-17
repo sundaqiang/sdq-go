@@ -33,11 +33,16 @@ type GinTracer struct {
 
 // GetGinTracer 获取上下文实例
 func GetGinTracer(c *gin.Context) *GinTracer {
+	var db *gorm.DB
+	db = Db
+	if Db != nil {
+		db = Db.WithContext(c)
+	}
 	return &GinTracer{
 		Cache: LRUCache,
 		Cron:  GoCron,
 		Ctx:   c,
-		Db:    Db.WithContext(c),
+		Db:    db,
 		Http:  FastHttpClient,
 		Log:   ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c))),
 		Rdb:   Rdb,
