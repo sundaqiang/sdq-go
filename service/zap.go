@@ -70,7 +70,7 @@ func GinZapWithConfig(logger *zap.Logger, conf *ginzap.Config, trace string) gin
 				zap.String("path", path),
 				zap.String("query", query),
 				zap.String("ip", c.ClientIP()),
-				zap.String("user-agent", c.Request.UserAgent()),
+				zap.Reflect("header", c.Request.Header),
 				zap.Duration("latency", latency),
 			}
 			// body
