@@ -100,10 +100,14 @@ func InitGoCron(cronAsync bool) {
 	if timeLocationErr != nil {
 		t = time.FixedZone("CST", 8*3600)
 	}
-	GoCron, err = gocron.NewScheduler(gocron.WithLocation(t), gocron.WithLimitConcurrentJobs(
-		1,
-		gocron.LimitModeReschedule,
-	))
+	GoCron, err = gocron.NewScheduler(
+		gocron.WithLocation(t),
+		gocron.WithGlobalJobOptions(
+			gocron.WithSingletonMode(
+				gocron.LimitModeReschedule,
+			),
+		),
+	)
 	if err != nil {
 		ZapLog.Error("GoCron初始化失败",
 			zap.Error(err),
