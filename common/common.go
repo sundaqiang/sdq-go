@@ -7,7 +7,13 @@ import (
 
 var (
 	fileTypeMap sync.Map
-	json        = sonic.ConfigFastest
+	//json        = sonic.ConfigFastest
+	json = sonic.Config{
+		NoQuoteTextMarshaler:    true,
+		NoValidateJSONMarshaler: true,
+		NoValidateJSONSkip:      true,
+		UseNumber:               true,
+	}.Froze()
 )
 
 func init() {

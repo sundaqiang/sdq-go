@@ -30,8 +30,14 @@ import (
 )
 
 var (
-	config         Config
-	json           = sonic.ConfigFastest
+	config Config
+	//json           = sonic.ConfigFastest
+	json = sonic.Config{
+		NoQuoteTextMarshaler:    true,
+		NoValidateJSONMarshaler: true,
+		NoValidateJSONSkip:      true,
+		UseNumber:               true,
+	}.Froze()
 	trans          ut.Translator
 	ValidatorRegs  *ValidatorReg
 	GoCron         gocron.Scheduler

@@ -76,7 +76,6 @@ func GinZapWithConfig(logger *zap.Logger, conf *ginzap.Config, trace string) gin
 			// body
 			if body != nil {
 				if json.Valid(body) {
-
 					fields = append(fields, zap.Reflect("body", common.Json2Map(body)))
 				} else {
 					fields = append(fields, zap.ByteString("body", body))
