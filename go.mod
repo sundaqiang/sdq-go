@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/beevik/ntp v1.4.3
-	github.com/bytedance/sonic v1.13.1
+	github.com/bytedance/sonic v1.13.2
 	github.com/gin-contrib/pprof v1.5.2
 	github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/zap v1.1.4
@@ -13,7 +13,6 @@ require (
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.25.0
-	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/google/uuid v1.6.0
 	github.com/ipipdotnet/ipdb-go v1.3.3
 	github.com/knadh/koanf/parsers/toml v0.1.0
@@ -21,7 +20,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/orca-zhang/ecache v1.1.1
-	github.com/redis/go-redis/v9 v9.7.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/sony/sonyflake v1.2.0
 	github.com/valyala/fasthttp v1.59.0
 	go.mongodb.org/mongo-driver v1.17.3
@@ -47,7 +46,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/sse v1.0.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.0 // indirect
+	github.com/go-sql-driver/mysql v1.9.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
@@ -81,6 +80,6 @@ require (
 	golang.org/x/arch v0.15.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
