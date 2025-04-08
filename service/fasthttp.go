@@ -355,15 +355,26 @@ func (t *GinTracer) FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 
 	// 访问接口
 	if err := FastHttpClient.Do(req, resp); err != nil {
-		t.Log.Error("FastResponse接口访问错误",
-			zap.String("url", fullUrl),
-			zap.String("method", reqArg.Method),
-			zap.String("content_type", contentType),
-			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
-			zap.Reflect("body_json", reqArg.BodyJson),
-			zap.Error(err),
-		)
+		switch {
+		case reqArg.Body != nil:
+			t.Log.Warn("FastResponse接口访问错误",
+				zap.String("url", fullUrl),
+				zap.String("method", reqArg.Method),
+				zap.String("content_type", contentType),
+				zap.String("user_agent", userAgent),
+				zap.ByteString("body", reqArg.Body.QueryString()),
+				zap.Error(err),
+			)
+		case reqArg.BodyJson != nil:
+			t.Log.Warn("FastResponse接口访问错误",
+				zap.String("url", fullUrl),
+				zap.String("method", reqArg.Method),
+				zap.String("content_type", contentType),
+				zap.String("user_agent", userAgent),
+				zap.Reflect("body_json", reqArg.BodyJson),
+				zap.Error(err),
+			)
+		}
 		return false
 	}
 
@@ -398,14 +409,24 @@ func (t *GinTracer) FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 	resArg.StatusCode = resp.StatusCode()
 	resArg.Header = resp.Header.String()
 	if resArg.StatusCode != 200 {
-		t.Log.Error("FastResponse接口访问失败",
-			zap.String("url", fullUrl),
-			zap.String("method", reqArg.Method),
-			zap.String("content_type", contentType),
-			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
-			zap.Reflect("body_json", reqArg.BodyJson),
-		)
+		switch {
+		case reqArg.Body != nil:
+			t.Log.Warn("FastResponse接口访问失败",
+				zap.String("url", fullUrl),
+				zap.String("method", reqArg.Method),
+				zap.String("content_type", contentType),
+				zap.String("user_agent", userAgent),
+				zap.ByteString("body", reqArg.Body.QueryString()),
+			)
+		case reqArg.BodyJson != nil:
+			t.Log.Warn("FastResponse接口访问失败",
+				zap.String("url", fullUrl),
+				zap.String("method", reqArg.Method),
+				zap.String("content_type", contentType),
+				zap.String("user_agent", userAgent),
+				zap.Reflect("body_json", reqArg.BodyJson),
+			)
+		}
 		return false
 	}
 
@@ -413,37 +434,69 @@ func (t *GinTracer) FastResponse(reqArg *FastReqArg, resArg *FastResArg) bool {
 	if resArg.BodyJson != nil {
 		isConvert := common.Json2Struct(resp.Body(), resArg.BodyJson)
 		if isConvert == nil {
+			switch {
+			case reqArg.Body != nil:
+				t.Log.Info("FastResponse接口访问成功",
+					zap.String("url", fullUrl),
+					zap.String("method", reqArg.Method),
+					zap.String("content_type", contentType),
+					zap.String("user_agent", userAgent),
+					zap.ByteString("body", reqArg.Body.QueryString()),
+					zap.Reflect("res", resArg.BodyJson),
+				)
+			case reqArg.BodyJson != nil:
+				t.Log.Info("FastResponse接口访问成功",
+					zap.String("url", fullUrl),
+					zap.String("method", reqArg.Method),
+					zap.String("content_type", contentType),
+					zap.String("user_agent", userAgent),
+					zap.Reflect("body_json", reqArg.BodyJson),
+					zap.Reflect("res", resArg.BodyJson),
+				)
+			}
+			return true
+		}
+	} else {
+		resArg.Body = resp.Body()
+		switch {
+		case reqArg.Body != nil:
 			t.Log.Info("FastResponse接口访问成功",
 				zap.String("url", fullUrl),
 				zap.String("method", reqArg.Method),
 				zap.String("content_type", contentType),
 				zap.String("user_agent", userAgent),
-				zap.Reflect("body", reqArg.Body),
-				zap.Reflect("body_json", reqArg.BodyJson),
-				zap.Reflect("res", resArg.BodyJson),
+				zap.ByteString("body", reqArg.Body.QueryString()),
+				zap.ByteString("res", resArg.Body),
 			)
-			return true
+		case reqArg.BodyJson != nil:
+			t.Log.Info("FastResponse接口访问成功",
+				zap.String("url", fullUrl),
+				zap.String("method", reqArg.Method),
+				zap.String("content_type", contentType),
+				zap.String("user_agent", userAgent),
+				zap.Reflect("body_json", reqArg.BodyJson),
+				zap.ByteString("res", resArg.Body),
+			)
 		}
-	} else {
-		resArg.Body = resp.Body()
-		t.Log.Info("FastResponse接口访问成功",
+		return true
+	}
+	switch {
+	case reqArg.Body != nil:
+		t.Log.Warn("FastResponse接口访问异常",
 			zap.String("url", fullUrl),
 			zap.String("method", reqArg.Method),
 			zap.String("content_type", contentType),
 			zap.String("user_agent", userAgent),
-			zap.Reflect("body", reqArg.Body),
-			zap.Reflect("body_json", reqArg.BodyJson),
-			zap.ByteString("res", resArg.Body),
+			zap.ByteString("body", reqArg.Body.QueryString()),
 		)
-		return true
+	case reqArg.BodyJson != nil:
+		t.Log.Warn("FastResponse接口访问异常",
+			zap.String("url", fullUrl),
+			zap.String("method", reqArg.Method),
+			zap.String("content_type", contentType),
+			zap.String("user_agent", userAgent),
+			zap.Reflect("body_json", reqArg.BodyJson),
+		)
 	}
-	t.Log.Error("FastResponse接口访问异常",
-		zap.String("url", fullUrl),
-		zap.String("method", reqArg.Method),
-		zap.String("content_type", contentType),
-		zap.String("user_agent", userAgent),
-		zap.Reflect("body", reqArg.Body),
-		zap.Reflect("body_json", reqArg.BodyJson),
-	)
 	return false
 }
