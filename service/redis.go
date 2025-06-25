@@ -28,91 +28,73 @@ func (LogHook) DialHook(next redis.DialHook) redis.DialHook {
 }
 func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
-		c, ok := ctx.(*gin.Context)
-		if ok {
-			l := ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c)))
-			if cmd.Err() != nil {
-				l.Error(
-					"redis_trace",
-					zap.Any("args", cmd.Args()),
-					zap.Error(cmd.Err()),
-				)
-			} else {
-				l.Debug(
-					"redis_trace",
-					zap.Any("args", cmd.Args()),
-					zap.String("cmd", cmd.String()),
-				)
+		traceID := ""
+		if c, ok := ctx.(*gin.Context); ok {
+			traceID = requestid.Get(c)
+		} else if v := ctx.Value(config.Server.Trace); v != nil {
+			if s, ok := v.(string); ok {
+				traceID = s
 			}
 		}
-		// 获取键值
-		value := ctx.Value(config.Server.Trace)
-		// 检查值是否存在
-		if value != nil {
-			l := ZapLog.With(zap.String(config.Server.Trace, value.(string)))
-			if cmd.Err() != nil {
-				l.Error(
-					"redis_trace",
-					zap.Any("args", cmd.Args()),
-					zap.Error(cmd.Err()),
-				)
-			} else {
-				l.Debug(
-					"redis_trace",
-					zap.Any("args", cmd.Args()),
-					zap.String("cmd", cmd.String()),
-				)
-			}
+		err := next(ctx, cmd)
+		l := ZapLog
+		if traceID != "" {
+			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
-		next(ctx, cmd)
-		return nil
+		if err != nil || cmd.Err() != nil {
+			l.Error(
+				"redis_trace",
+				zap.Any("args", cmd.Args()),
+				zap.Error(err),
+			)
+		} else {
+			l.Debug(
+				"redis_trace",
+				zap.Any("args", cmd.Args()),
+				zap.String("cmd", cmd.String()),
+			)
+		}
+		return err
 	}
 }
 
 func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
-		c, ok := ctx.(*gin.Context)
-		if ok {
-			l := ZapLog.With(zap.String(config.Server.Trace, requestid.Get(c)))
-			for _, cmd := range cmds {
-				if cmd.Err() != nil {
-					l.Error(
-						"redis_trace",
-						zap.Any("args", cmd.Args()),
-						zap.Error(cmd.Err()),
-					)
-				} else {
-					l.Debug(
-						"redis_trace",
-						zap.Any("args", cmd.Args()),
-						zap.String("cmd", cmd.String()),
-					)
-				}
+		traceID := ""
+		if c, ok := ctx.(*gin.Context); ok {
+			traceID = requestid.Get(c)
+		} else if v := ctx.Value(config.Server.Trace); v != nil {
+			if s, ok := v.(string); ok {
+				traceID = s
 			}
 		}
-		// 获取键值
-		value := ctx.Value(config.Server.Trace)
-		// 检查值是否存在
-		if value != nil {
-			l := ZapLog.With(zap.String(config.Server.Trace, value.(string)))
-			for _, cmd := range cmds {
-				if cmd.Err() != nil {
-					l.Error(
-						"redis_trace",
-						zap.Any("args", cmd.Args()),
-						zap.Error(cmd.Err()),
-					)
-				} else {
-					l.Debug(
-						"redis_trace",
-						zap.Any("args", cmd.Args()),
-						zap.String("cmd", cmd.String()),
-					)
-				}
+		err := next(ctx, cmds)
+		l := ZapLog
+		if traceID != "" {
+			l = l.With(zap.String(config.Server.Trace, traceID))
+		}
+		for _, cmd := range cmds {
+			if cmd.Err() != nil {
+				l.Error(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.Error(cmd.Err()),
+				)
+			} else if err != nil { // pipeline整体如果报错，也输出一下
+				l.Error(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.Error(err),
+				)
+			} else {
+				l.Debug(
+					"redis_trace",
+					zap.Any("args", cmd.Args()),
+					zap.String("cmd", cmd.String()),
+				)
 			}
 		}
-		next(ctx, cmds)
-		return nil
+		return err
 	}
 }
 
