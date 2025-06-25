@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"github.com/sundaqiang/sdq-go/common"
 	"net"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -23,11 +22,17 @@ type Redis struct {
 
 type LogHook struct{}
 
+var ignoredRedisErrorSubstrings = []string{
+	"redis: nil",
+	"ERR unknown command",
+	"ERR Syntax error, try CLIENT (LIST | KILL ip:port | GETNAME | SETNAME connection-name)",
+}
+
 func shouldIgnoreRedisError(err error) bool {
-	if errors.Is(err, redis.Nil) {
+	if err == nil {
 		return true
 	}
-	if strings.Contains(err.Error(), "ERR Syntax error, try CLIENT (LIST | KILL ip:port | GETNAME | SETNAME connection-name)") {
+	if common.StringInSlice(ignoredRedisErrorSubstrings, err.Error()) {
 		return true
 	}
 	return false
@@ -59,7 +64,7 @@ func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 		if traceID != "" {
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
-		if err != nil && !shouldIgnoreRedisError(err) {
+		if !shouldIgnoreRedisError(err) {
 			l.Error(
 				"redis_trace",
 				zap.Any("args", cmd.Args()),
@@ -94,7 +99,7 @@ func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Process
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
 
-		if err != nil && !shouldIgnoreRedisError(err) {
+		if !shouldIgnoreRedisError(err) {
 			l.Error(
 				"redis_pipeline_trace",
 				zap.String("pipeline_error", "pipeline execution failed"),
@@ -104,7 +109,7 @@ func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Process
 
 		for _, cmd := range cmds {
 			e := cmd.Err()
-			if e != nil && !shouldIgnoreRedisError(e) {
+			if !shouldIgnoreRedisError(e) {
 				l.Error(
 					"redis_pipeline_trace",
 					zap.Any("args", cmd.Args()),
