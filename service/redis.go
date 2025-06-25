@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"net"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,11 +23,22 @@ type Redis struct {
 
 type LogHook struct{}
 
+func shouldIgnoreRedisError(err error) bool {
+	if errors.Is(err, redis.Nil) {
+		return true
+	}
+	if strings.Contains(err.Error(), "ERR Syntax error, try CLIENT (LIST | KILL ip:port | GETNAME | SETNAME connection-name)") {
+		return true
+	}
+	return false
+}
+
 func (LogHook) DialHook(next redis.DialHook) redis.DialHook {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return next(ctx, network, addr)
 	}
 }
+
 func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		traceID := ""
@@ -36,12 +49,17 @@ func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 				traceID = s
 			}
 		}
+
 		err := next(ctx, cmd)
+		if err == nil {
+			err = cmd.Err()
+		}
+
 		l := ZapLog
 		if traceID != "" {
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
-		if err != nil || cmd.Err() != nil {
+		if err != nil && !shouldIgnoreRedisError(err) {
 			l.Error(
 				"redis_trace",
 				zap.Any("args", cmd.Args()),
@@ -68,27 +86,33 @@ func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Process
 				traceID = s
 			}
 		}
+
 		err := next(ctx, cmds)
+
 		l := ZapLog
 		if traceID != "" {
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
+
+		if err != nil && !shouldIgnoreRedisError(err) {
+			l.Error(
+				"redis_pipeline_trace",
+				zap.String("pipeline_error", "pipeline execution failed"),
+				zap.Error(err),
+			)
+		}
+
 		for _, cmd := range cmds {
-			if cmd.Err() != nil {
+			e := cmd.Err()
+			if e != nil && !shouldIgnoreRedisError(e) {
 				l.Error(
-					"redis_trace",
+					"redis_pipeline_trace",
 					zap.Any("args", cmd.Args()),
-					zap.Error(cmd.Err()),
-				)
-			} else if err != nil { // pipeline整体如果报错，也输出一下
-				l.Error(
-					"redis_trace",
-					zap.Any("args", cmd.Args()),
-					zap.Error(err),
+					zap.Error(e),
 				)
 			} else {
 				l.Debug(
-					"redis_trace",
+					"redis_pipeline_trace",
 					zap.Any("args", cmd.Args()),
 					zap.String("cmd", cmd.String()),
 				)
