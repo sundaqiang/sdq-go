@@ -20,7 +20,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/v2 v2.2.1
 	github.com/orca-zhang/ecache v1.1.3
-	github.com/redis/go-redis/v9 v9.10.0
+	github.com/redis/go-redis/v9 v9.11.0
 	github.com/sony/sonyflake v1.2.1
 	github.com/valyala/fasthttp v1.62.0
 	go.mongodb.org/mongo-driver v1.17.4
