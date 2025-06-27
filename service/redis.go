@@ -25,6 +25,7 @@ type LogHook struct{}
 var ignoredRedisErrorSubstrings = []string{
 	"redis: nil",
 	"ERR unknown command",
+	"ERR invalid command",
 	"ERR Syntax error, try CLIENT (LIST | KILL ip:port | GETNAME | SETNAME connection-name)",
 }
 
