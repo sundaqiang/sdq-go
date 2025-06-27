@@ -5,8 +5,8 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"github.com/sundaqiang/sdq-go/common"
 	"net"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -33,8 +33,14 @@ func shouldIgnoreRedisError(err error) bool {
 	if err == nil {
 		return true
 	}
-	if common.StringInSlice(ignoredRedisErrorSubstrings, err.Error()) {
-		return true
+	errStr := err.Error()
+	for _, substr := range ignoredRedisErrorSubstrings {
+		if errStr == substr {
+			return true
+		}
+		if strings.Contains(errStr, substr) {
+			return true
+		}
 	}
 	return false
 }
