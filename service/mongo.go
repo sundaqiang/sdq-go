@@ -29,8 +29,8 @@ func InitMongo(info *Mongo) {
 		SetConnectTimeout(10 * time.Second).  //TCP + TLS 握手超时
 		SetMaxConnIdleTime(20 * time.Second). //空闲连接多久被回收，比业务峰值间隔大一点
 		SetSocketTimeout(60 * time.Second).   // 单次读写最长等待，防止慢查询占住连接
-		SetMaxPoolSize(2000).                 // 最大连接数（一个进程内）
-		SetMinPoolSize(200).                  // 预热，避免突发建连
+		SetMaxPoolSize(200).                  // 最大连接数（一个进程内）
+		SetMinPoolSize(30).                   // 预热，避免突发建连
 		SetBSONOptions(&options.BSONOptions{
 			UseJSONStructTags:       true,
 			ErrorOnInlineDuplicates: true,
