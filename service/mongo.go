@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"time"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -9,9 +11,11 @@ import (
 )
 
 type Mongo struct {
-	Url      string `toml:"url"`
-	Username string `toml:"username"`
-	Password string `toml:"password"`
+	Url            string `toml:"url"`
+	Username       string `toml:"username"`
+	Password       string `toml:"password"`
+	AppName        string `toml:"app-name"`
+	PreferenceMode string `toml:"preference-mode"`
 }
 
 // InitMongo 初始化
@@ -22,7 +26,11 @@ func InitMongo(info *Mongo) {
 	opts := options.Client().
 		ApplyURI(info.Url).
 		SetCompressors([]string{"zstd", "zlib", "snappy"}).
-		SetAppName("platform_taobao").
+		SetConnectTimeout(10 * time.Second).  //TCP + TLS 握手超时
+		SetMaxConnIdleTime(20 * time.Second). //空闲连接多久被回收，比业务峰值间隔大一点
+		SetSocketTimeout(60 * time.Second).   // 单次读写最长等待，防止慢查询占住连接
+		SetMaxPoolSize(500).                  // 最大连接数（一个进程内）
+		SetMinPoolSize(50).                   // 预热，避免突发建连
 		SetBSONOptions(&options.BSONOptions{
 			UseJSONStructTags:       true,
 			ErrorOnInlineDuplicates: true,
@@ -37,6 +45,15 @@ func InitMongo(info *Mongo) {
 			Username: info.Username,
 			Password: info.Password,
 		})
+	if info.AppName != "" {
+		opts = opts.SetAppName(info.AppName)
+	}
+
+	if info.PreferenceMode != "" { // 可选：指定副本节点优先读
+		readMode, _ := readpref.ModeFromString(info.PreferenceMode)
+		readPref, _ := readpref.New(readMode)
+		opts = opts.SetReadPreference(readPref)
+	}
 
 	Mdb, err = mongo.Connect(ctx, opts)
 	if err != nil {
