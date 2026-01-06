@@ -49,7 +49,8 @@ func InitMongo(info *Mongo) {
 		opts = opts.SetAppName(info.AppName)
 	}
 
-	if info.PreferenceMode != "" { // 可选：指定副本节点优先读
+	if info.PreferenceMode != "" {
+		// 可选：指定副本节点优先读
 		readMode, _ := readpref.ModeFromString(info.PreferenceMode)
 		readPref, _ := readpref.New(readMode)
 		opts = opts.SetReadPreference(readPref)
