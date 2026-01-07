@@ -16,6 +16,8 @@ type Mongo struct {
 	Password       string `toml:"password"`
 	AppName        string `toml:"app-name"`
 	PreferenceMode string `toml:"preference-mode"`
+	MaxPool        uint64 `toml:"max-pool"`
+	MinPool        uint64 `toml:"min-pool"`
 }
 
 // InitMongo 初始化
@@ -26,11 +28,11 @@ func InitMongo(info *Mongo) {
 	opts := options.Client().
 		ApplyURI(info.Url).
 		SetCompressors([]string{"zstd", "zlib", "snappy"}).
-		SetConnectTimeout(10 * time.Second).  //TCP + TLS 握手超时
-		SetMaxConnIdleTime(20 * time.Second). //空闲连接多久被回收，比业务峰值间隔大一点
-		SetSocketTimeout(60 * time.Second).   // 单次读写最长等待，防止慢查询占住连接
-		SetMaxPoolSize(200).                  // 最大连接数（一个进程内）
-		SetMinPoolSize(30).                   // 预热，避免突发建连
+		SetConnectTimeout(5 * time.Second).   //TCP + TLS 握手超时
+		SetMaxConnIdleTime(30 * time.Second). //空闲连接多久被回收，比业务峰值间隔大一点
+		SetSocketTimeout(30 * time.Second).   // 单次读写最长等待，防止慢查询占住连接
+		SetMaxPoolSize(100).                  // 最大连接数（一个进程内）
+		SetMinPoolSize(10).                   // 预热，避免突发建连
 		SetBSONOptions(&options.BSONOptions{
 			UseJSONStructTags:       true,
 			ErrorOnInlineDuplicates: true,
@@ -45,6 +47,7 @@ func InitMongo(info *Mongo) {
 			Username: info.Username,
 			Password: info.Password,
 		})
+
 	if info.AppName != "" {
 		opts = opts.SetAppName(info.AppName)
 	}
@@ -54,6 +57,14 @@ func InitMongo(info *Mongo) {
 		readMode, _ := readpref.ModeFromString(info.PreferenceMode)
 		readPref, _ := readpref.New(readMode)
 		opts = opts.SetReadPreference(readPref)
+	}
+
+	if info.MaxPool > 0 {
+		opts = opts.SetMaxPoolSize(info.MaxPool)
+	}
+
+	if info.MinPool > 0 {
+		opts = opts.SetMinPoolSize(info.MinPool)
 	}
 
 	Mdb, err = mongo.Connect(ctx, opts)
