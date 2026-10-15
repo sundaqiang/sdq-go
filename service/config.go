@@ -29,11 +29,13 @@ type Database struct {
 }
 
 type Server struct {
-	Name  string `toml:"name"`
-	Host  string `toml:"host"`
-	Port  int    `toml:"port"`
-	Trace string `toml:"trace"`
-	Trans bool   `toml:"trans"`
+	Name            string   `toml:"name"`
+	Host            string   `toml:"host"`
+	Port            int      `toml:"port"`
+	Trace           string   `toml:"trace"`
+	Trans           bool     `toml:"trans"`
+	TrustedProxies  []string `toml:"trusted-proxies"`
+	RemoteIPHeaders []string `toml:"remote-ip-headers"`
 }
 
 type Log struct {

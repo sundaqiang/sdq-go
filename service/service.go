@@ -152,7 +152,11 @@ func InitGin(router func(r *gin.Engine), skipPaths []string) {
 			return
 		}
 	}
-	r := gin.New()
+	r := newGinEngine()
+	if err := configureGinClientIP(r, config.Server.TrustedProxies, config.Server.RemoteIPHeaders); err != nil {
+		ZapLog.Error("Gin初始化失败", zap.Error(err))
+		return
+	}
 	r.Use(gin.Recovery())
 	// 一个唯一id的中间件
 	r.Use(requestid.New(
