@@ -19,9 +19,12 @@ type Redis struct {
 	Username string `toml:"username"`
 	Password string `toml:"password"`
 	DB       int    `toml:"db"`
+	Debug    bool   `toml:"debug"` // 默认关闭；开启后输出 redis_trace 调试日志。
 }
 
-type LogHook struct{}
+type LogHook struct {
+	Debug bool
+}
 
 var ignoredRedisErrorSubstrings = []string{
 	"redis: nil",
@@ -52,14 +55,14 @@ func (LogHook) DialHook(next redis.DialHook) redis.DialHook {
 	}
 }
 
-func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+func (h LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		traceID := ""
 		if c, ok := ctx.(*gin.Context); ok {
 			traceID = requestid.Get(c)
-		} else if v := ctx.Value(config.Server.Trace); v != nil {
-			if s, ok := v.(string); ok {
-				traceID = s
+		} else if config.Server != nil && config.Server.Trace != "" {
+			if v, ok := ctx.Value(config.Server.Trace).(string); ok {
+				traceID = v
 			}
 		}
 
@@ -69,41 +72,33 @@ func (LogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 		}
 
 		l := ZapLog
-		if traceID != "" {
+		if traceID != "" && config.Server != nil && config.Server.Trace != "" {
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
 		if !shouldIgnoreRedisError(err) {
-			l.Error(
-				"redis_trace",
-				zap.Any("args", cmd.Args()),
-				zap.Error(err),
-			)
-		} else {
-			l.Debug(
-				"redis_trace",
-				zap.Any("args", cmd.Args()),
-				zap.String("cmd", cmd.String()),
-			)
+			l.Error("redis_trace", zap.Any("args", cmd.Args()), zap.Error(err))
+		} else if h.Debug {
+			l.Debug("redis_trace", zap.Any("args", cmd.Args()), zap.String("cmd", cmd.String()))
 		}
 		return err
 	}
 }
 
-func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+func (h LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
 		traceID := ""
 		if c, ok := ctx.(*gin.Context); ok {
 			traceID = requestid.Get(c)
-		} else if v := ctx.Value(config.Server.Trace); v != nil {
-			if s, ok := v.(string); ok {
-				traceID = s
+		} else if config.Server != nil && config.Server.Trace != "" {
+			if v, ok := ctx.Value(config.Server.Trace).(string); ok {
+				traceID = v
 			}
 		}
 
 		err := next(ctx, cmds)
 
 		l := ZapLog
-		if traceID != "" {
+		if traceID != "" && config.Server != nil && config.Server.Trace != "" {
 			l = l.With(zap.String(config.Server.Trace, traceID))
 		}
 
@@ -118,17 +113,9 @@ func (LogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Process
 		for _, cmd := range cmds {
 			e := cmd.Err()
 			if !shouldIgnoreRedisError(e) {
-				l.Error(
-					"redis_pipeline_trace",
-					zap.Any("args", cmd.Args()),
-					zap.Error(e),
-				)
-			} else {
-				l.Debug(
-					"redis_pipeline_trace",
-					zap.Any("args", cmd.Args()),
-					zap.String("cmd", cmd.String()),
-				)
+				l.Error("redis_pipeline_trace", zap.Any("args", cmd.Args()), zap.Error(e))
+			} else if h.Debug {
+				l.Debug("redis_pipeline_trace", zap.Any("args", cmd.Args()), zap.String("cmd", cmd.String()))
 			}
 		}
 		return err
@@ -165,7 +152,7 @@ func (r *Redis) initRedis() {
 	if err := client.Ping(ctx).Err(); err != nil {
 		ZapLog.Fatal("redis连接失败", zap.Error(err))
 	} else {
-		client.AddHook(LogHook{})
+		client.AddHook(LogHook{Debug: r.Debug})
 		Rdb = append(Rdb, client)
 		ZapLog.Info("redis连接成功")
 	}

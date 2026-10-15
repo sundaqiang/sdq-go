@@ -39,21 +39,17 @@ type Resolver struct {
 func initDB(info *Gorm) {
 	// 将gorm的日志改为zap
 	newLogger := zapgorm2.New(ZapLog)
-	newLogger.LogLevel = logger.Info
+	// Keep normal queries quiet; GORM's native db.Debug() switches this copy to Info.
+	newLogger.LogLevel = logger.Warn
 	newLogger.SlowThreshold = time.Second
 	newLogger.SkipCallerLookup = false
 	newLogger.IgnoreRecordNotFoundError = true
-	if config.Server.Trace != "" {
+	if config.Server != nil && config.Server.Trace != "" {
 		newLogger.Context = func(ctx context.Context) []zapcore.Field {
 			c, ok := ctx.(*gin.Context)
 			if ok {
 				return []zapcore.Field{
-					zap.String(
-						config.Server.Trace,
-						c.Writer.Header().Get(
-							common.KebabString(config.Server.Trace),
-						),
-					),
+					zap.String(config.Server.Trace, c.Writer.Header().Get(common.KebabString(config.Server.Trace))),
 				}
 			}
 			// 获取键值
@@ -61,12 +57,7 @@ func initDB(info *Gorm) {
 			// 检查值是否存在
 			if value != nil {
 				return []zapcore.Field{
-					zap.String(
-						config.Server.Trace,
-						c.Writer.Header().Get(
-							common.KebabString(config.Server.Trace),
-						),
-					),
+					zap.Any(config.Server.Trace, value),
 				}
 			}
 			return []zapcore.Field{}

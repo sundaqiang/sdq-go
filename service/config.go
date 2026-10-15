@@ -45,6 +45,8 @@ type Log struct {
 	LocalTime  bool   `toml:"local-time"`
 	Compress   bool   `toml:"compress"`
 	CallerSkip int    `toml:"caller-skip"`
+	// SensitiveFields 需要脱敏的日志字段名；无内置字段，为空时不脱敏。
+	SensitiveFields []string `toml:"sensitive-fields"`
 }
 
 type Cache struct {

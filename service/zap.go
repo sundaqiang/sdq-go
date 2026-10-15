@@ -17,7 +17,11 @@ func getEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	return zapcore.NewJSONEncoder(encoderConfig)
+	var sensitiveFields []string
+	if config.Log != nil {
+		sensitiveFields = config.Log.SensitiveFields
+	}
+	return newRedactingEncoder(zapcore.NewJSONEncoder(encoderConfig), sensitiveFields)
 }
 
 func getLogWriter(logger *lumberjack.Logger, stdOut bool) zapcore.WriteSyncer {
