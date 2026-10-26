@@ -47,8 +47,20 @@ type Log struct {
 	LocalTime  bool   `toml:"local-time"`
 	Compress   bool   `toml:"compress"`
 	CallerSkip int    `toml:"caller-skip"`
+	// HTTPLog HTTP 请求/响应日志配置。
+	HTTPLog *HTTPLog `toml:"http"`
 	// SensitiveFields 需要脱敏的日志字段名；无内置字段，为空时不脱敏。
 	SensitiveFields []string `toml:"sensitive-fields"`
+}
+
+// HTTPLog 控制 Handler 请求/响应日志。
+type HTTPLog struct {
+	// RequestEnabled 请求开始日志开关。
+	RequestEnabled bool `toml:"request-enabled"`
+	// ResponseEnabled 请求完成日志开关。
+	ResponseEnabled bool `toml:"response-enabled"`
+	// BodyLimit 请求体和响应体写入日志的最大字节数；超出部分截断。默认 8192。
+	BodyLimit int `toml:"body-limit"`
 }
 
 type Cache struct {

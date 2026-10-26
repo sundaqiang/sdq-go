@@ -6,7 +6,6 @@ import (
 	"github.com/bytedance/sonic"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
-	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron/v2"
 	ut "github.com/go-playground/universal-translator"
@@ -157,7 +156,6 @@ func InitGin(router func(r *gin.Engine), skipPaths []string) {
 		ZapLog.Error("Gin初始化失败", zap.Error(err))
 		return
 	}
-	r.Use(gin.Recovery())
 	// 一个唯一id的中间件
 	r.Use(requestid.New(
 		requestid.WithCustomHeaderStrKey(requestid.HeaderStrKey(common.KebabString(config.Server.Trace))),
@@ -175,16 +173,15 @@ func InitGin(router func(r *gin.Engine), skipPaths []string) {
 		return
 	}
 
-	// 将gin的日志改为zap
-	r.Use(GinZapWithConfig(ZapLog,
-		&ginZap.Config{
-			UTC:        false,
-			TimeFormat: time.RFC3339,
-			SkipPaths:  skipPaths,
-		},
-		config.Server.Trace,
-	))
-	r.Use(ginZap.RecoveryWithZap(ZapLog, true))
+	// 响应日志必须位于 recovery 外层，这样 panic 处理完成后才会记录 500 响应。
+	// 开关关闭时不挂载对应中间件，避免保留一次空转。
+	if httpLogEnabled(true) {
+		r.Use(GinRequestLog(ZapLog, config.Server.Trace, skipPaths))
+	}
+	if httpLogEnabled(false) {
+		r.Use(GinResponseLog(ZapLog, config.Server.Trace, skipPaths))
+	}
+	r.Use(GinRecoveryLog(ZapLog, config.Server.Trace, true))
 
 	router(r)
 

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -24,6 +25,7 @@ type Gorm struct {
 	Password string     `toml:"password"`
 	Name     string     `toml:"name"`
 	Resolver []Resolver `toml:"resolver"`
+	LogLevel string     `toml:"log-level"` // SQL 日志等级: silent / error / warn / info，默认 warn。
 }
 
 type Resolver struct {
@@ -39,8 +41,19 @@ type Resolver struct {
 func initDB(info *Gorm) {
 	// 将gorm的日志改为zap
 	newLogger := zapgorm2.New(ZapLog)
-	// Keep normal queries quiet; GORM's native db.Debug() switches this copy to Info.
 	newLogger.LogLevel = logger.Warn
+	switch strings.ToLower(info.LogLevel) {
+	case "silent":
+		newLogger.LogLevel = logger.Silent
+	case "error":
+		newLogger.LogLevel = logger.Error
+	case "warn":
+		newLogger.LogLevel = logger.Warn
+	case "info":
+		newLogger.LogLevel = logger.Info
+	default:
+		newLogger.LogLevel = logger.Warn
+	}
 	newLogger.SlowThreshold = time.Second
 	newLogger.SkipCallerLookup = false
 	newLogger.IgnoreRecordNotFoundError = true
